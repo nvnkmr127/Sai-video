@@ -24,7 +24,7 @@ class WebhookConfigController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:registration,otp',
+            'type' => 'required|in:registration,registration_pending,registration_approved,otp',
             'url' => 'required|url',
             'secret_token' => 'required|string|max:255',
             'is_active' => 'boolean',
@@ -46,7 +46,7 @@ class WebhookConfigController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:registration,otp',
+            'type' => 'required|in:registration,registration_pending,registration_approved,otp',
             'url' => 'required|url',
             'secret_token' => 'required|string|max:255',
             'is_active' => 'boolean',
@@ -79,10 +79,14 @@ class WebhookConfigController extends Controller
                     'message' => 'Your verification code is: 123456',
                     'is_test' => true
                 ];
-            } elseif ($webhook->type === 'registration') {
+            } elseif (str_starts_with($webhook->type, 'registration')) {
                 $event = 'registration.created';
+                if ($webhook->type === 'registration_pending') $event = 'registration.pending';
+                if ($webhook->type === 'registration_approved') $event = 'registration.approved';
+
                 $payload = [
-                    'event' => 'registration.created',
+                    'event' => $event,
+                    'status' => ($webhook->type === 'registration_pending') ? 'pending' : 'approved',
                     'timestamp' => now()->toIso8601String(),
                     'registration_id' => 999,
                     'workshop_id' => 1,
@@ -92,8 +96,8 @@ class WebhookConfigController extends Controller
                     'address' => '123 Test St, Sector 4, Sample City',
                     'organization' => 'Test Organization',
                     'qr_code_token' => (string) \Illuminate\Support\Str::uuid(),
-                    'qr_code_image_base64' => 'base64_encoded_image_sample',
-                    'qr_code_image_url' => 'https://example.com/sample-qr.png',
+                    'qr_code_image_base64' => ($event === 'registration.approved') ? 'base64_encoded_image_sample' : null,
+                    'qr_code_image_url' => ($event === 'registration.approved') ? 'https://example.com/sample-qr.png' : null,
                     'is_test' => true
                 ];
             }

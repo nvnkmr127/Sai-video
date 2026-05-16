@@ -46,8 +46,13 @@ class SendWebhookJob implements ShouldQueue
      */
     public function handle(): void
     {
-        // 1. Fetch targeted or all active WebhookConfig records of type 'registration'
-        $query = WebhookConfig::where('is_active', true)->where('type', 'registration');
+        // 1. Fetch targeted or all active WebhookConfig records that match this event type
+        $specificType = str_replace('.', '_', $this->event); // e.g. registration_pending
+        $query = WebhookConfig::where('is_active', true)
+            ->where(function($q) use ($specificType) {
+                $q->where('type', 'registration') // Catch-all
+                  ->orWhere('type', $specificType); // Specific event
+            });
 
         if ($this->webhookConfigId) {
             $query->where('id', $this->webhookConfigId);
@@ -94,7 +99,7 @@ class SendWebhookJob implements ShouldQueue
             // DUPLICATE PREVENTION: Check if this registration was already successfully sent to this config for THIS event
             $alreadySent = WebhookLog::where('registration_id', $registration->id)
                 ->where('webhook_config_id', $config->id)
-                ->where('payload', 'like', "%\"event\":\"{$this->event}\"%")
+                ->where('payload->event', $this->event)
                 ->whereIn('response_status', [200, 201, 202])
                 ->exists();
 

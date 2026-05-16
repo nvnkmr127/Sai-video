@@ -29,7 +29,9 @@
             <div class="mb-3">
                 <label for="type" class="form-label fw-bold">Webhook Type</label>
                 <select class="form-select @error('type') is-invalid @enderror" id="type" name="type" required>
-                    <option value="registration" {{ old('type', $config->type) == 'registration' ? 'selected' : '' }}>Registration Webhook (JSON payload)</option>
+                    <option value="registration" {{ old('type', $config->type) == 'registration' ? 'selected' : '' }}>Registration: All Events</option>
+                    <option value="registration_pending" {{ old('type', $config->type) == 'registration_pending' ? 'selected' : '' }}>Registration: Only Pending</option>
+                    <option value="registration_approved" {{ old('type', $config->type) == 'registration_approved' ? 'selected' : '' }}>Registration: Only Approved</option>
                     <option value="otp" {{ old('type', $config->type) == 'otp' ? 'selected' : '' }}>OTP Webhook (SMS/WhatsApp Provider)</option>
                 </select>
                 <div class="form-text mt-2">
