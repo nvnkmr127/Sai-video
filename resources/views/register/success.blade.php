@@ -55,11 +55,23 @@
                                     <span class="token-code">{{ $registration->qr_code_token }}</span>
                                 </div>
                             @else
-                                <div class="pending-status">
-                                    <div class="pending-icon small">
-                                        <i class="bi bi-clock-history"></i>
-                                    </div>
-                                    <div class="pending-badge mt-2">WAITING FOR APPROVAL</div>
+                                <div class="pending-visual-wrap">
+                                    <div class="status-ring-container">
+                                        <div class="status-ring">
+                                            <div class="ring-pulse"></div>
+                                            <div class="ring-core">
+                                                <i class="bi bi-shield-lock"></i>
+                                            </div>
+                                        </div>
+                                        </div>
+                                        <div class="status-content mt-4">
+                                            <h3 class="premium-status-title">Awaiting Approval</h3>
+                                            <p class="premium-status-desc">Your registration is being verified by our team. Your entry pass will appear here
+                                                once approved.</p>
+                                        </div>
+                                        <div class="pending-badge premium mt-3">
+                                            <span class="pulse-dot"></span> WAITING FOR APPROVAL
+                                        </div>
                                 </div>
                             @endif
                         </div>
@@ -72,12 +84,6 @@
                     </div>
 
                     <div class="pass-bottom">
-                        @if($registration->status !== 'approved')
-                            <div class="pending-info text-center">
-                                <h3 class="h6 fw-bold mb-1">Verification Pending</h3>
-                                <p class="x-small text-muted mb-0">Our team is reviewing your details.</p>
-                            </div>
-                        @endif
 
                         <div class="attendee-details">
                             <div class="detail-row">
@@ -382,6 +388,100 @@
         .location-link:hover {
             color: #555;
             text-decoration: underline;
+        }
+
+        .pending-visual-wrap {
+            padding: 3rem 1.5rem;
+            text-align: center;
+        }
+
+        .status-ring-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+        }
+
+        .status-ring {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ring-pulse {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 4px solid #f59e0b;
+            border-radius: 50%;
+            animation: ringPulse 2s infinite;
+        }
+
+        @keyframes ringPulse {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+
+        .ring-core {
+            width: 80px;
+            height: 80px;
+            background: #fffbeb;
+            border: 2px solid #fde68a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: #d97706;
+            z-index: 2;
+            box-shadow: 0 10px 20px rgba(217, 119, 6, 0.1);
+        }
+
+        .premium-status-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: #000;
+            margin-bottom: 0.75rem;
+        }
+
+        .premium-status-desc {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.5;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        .pending-badge.premium {
+            background: #000;
+            color: #fff;
+            padding: 0.6rem 1.25rem;
+            border-radius: 2rem;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: none;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #f59e0b;
+            border-radius: 50%;
+            animation: dotPulse 1.5s infinite;
+        }
+
+        @keyframes dotPulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
         }
 
         .pass-qr-section.top-qr {
