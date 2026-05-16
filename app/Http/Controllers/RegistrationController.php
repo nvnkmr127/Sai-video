@@ -98,8 +98,12 @@ class RegistrationController extends Controller
         // Remove OTP from validated data — not persisted in DB
         unset($validated['otp']);
 
-        // Generate unique QR code token
-        $validated['qr_code_token'] = (string) Str::uuid();
+        // Generate unique 6-character alphanumeric token (e.g. AB12C3)
+        do {
+            $token = strtoupper(Str::random(6));
+        } while (Registration::where('qr_code_token', $token)->exists());
+
+        $validated['qr_code_token'] = $token;
 
         $registration = Registration::create($validated);
 
