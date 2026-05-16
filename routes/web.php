@@ -18,6 +18,10 @@ Route::post('/otp/send', [RegistrationController::class, 'sendOtp'])
     ->middleware('throttle:3,1')
     ->name('registration.otp.send');
 
+Route::post('/registration/check-duplicate', [RegistrationController::class, 'checkDuplicate'])
+    ->middleware('throttle:10,1')
+    ->name('registration.check-duplicate');
+
 Route::get('/success/{uuid}', [RegistrationController::class, 'success'])->name('registration.success');
 Route::get('/qr-status/{token}', [RegistrationController::class, 'qrStatus'])
     ->middleware('throttle:30,1')

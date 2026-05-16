@@ -119,6 +119,23 @@ class RegistrationController extends Controller
         return redirect()->route('registration.success', $registration->qr_code_token);
     }
 
+    public function checkDuplicate(Request $request)
+    {
+        $request->validate([
+            'phone' => 'required|string',
+            'workshop_id' => 'required|exists:workshops,id'
+        ]);
+
+        $exists = Registration::where('workshop_id', $request->workshop_id)
+            ->where('phone', $request->phone)
+            ->exists();
+
+        return response()->json([
+            'exists' => $exists,
+            'message' => $exists ? 'This phone number is already registered for this workshop.' : ''
+        ]);
+    }
+
     public function sendOtp(Request $request)
     {
         $request->validate(['phone' => 'required|string']);

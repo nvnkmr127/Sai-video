@@ -437,21 +437,26 @@
     }
 
     @media (max-width: 992px) {
-        .layout-wrapper { flex-direction: column; overflow-y: auto; }
-        .visual-pane { flex: none; height: 40vh; min-height: 300px; }
-        .form-pane { flex: none; padding: 3rem 2rem 8rem; }
-        .workshop-title { font-size: 2.5rem; }
-        .visual-content { padding: 2rem; }
-        .form-navigation { position: fixed; bottom: 0; left: 0; width: 100%; padding: 1.5rem 2rem; background: white; border-top: 1px solid #e2e8f0; z-index: 1002; }
+        .layout-wrapper { flex-direction: column; overflow-y: auto; height: 100%; }
+        .visual-pane { flex: none; height: 35vh; min-height: 250px; }
+        .form-pane { flex: none; padding: 2rem 1.5rem 7rem; min-height: 65vh; }
+        .workshop-title { font-size: 2.25rem; }
+        .visual-content { padding: 1.5rem; }
+        .step-header { margin-bottom: 2rem; }
+        .step-header h3 { font-size: 1.75rem; }
+        .input-group-custom { margin-bottom: 2rem; }
+        .custom-input { font-size: 1.5rem; padding: 1.25rem 0 0.5rem; }
+        .form-navigation { position: fixed; bottom: 0; left: 0; width: 100%; padding: 1.25rem 1.5rem; background: white; border-top: 1px solid #e2e8f0; z-index: 1002; }
     }
 
     @media (max-width: 576px) {
-        .step-header h3 { font-size: 1.75rem; }
-        .custom-input { font-size: 1.4rem; }
-        .visual-pane { height: 30vh; }
-        .workshop-title { font-size: 2rem; }
-        .info-meta { flex-direction: column; gap: 0.5rem; }
-        .btn-next, .btn-submit { width: 100%; justify-content: center; }
+        .visual-pane { height: 25vh; min-height: 180px; }
+        .step-header { margin-bottom: 1.5rem; }
+        .step-header h3 { font-size: 1.5rem; }
+        .step-header p { font-size: 0.95rem; }
+        .custom-input { font-size: 1.25rem; }
+        .btn-next, .btn-submit { width: 100%; justify-content: center; padding: 1rem 1.5rem; }
+        .step-actions { margin-top: 2rem; }
         .shortcut-hint { display: none; }
     }
 </style>
@@ -538,23 +543,62 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(err => console.error("OTP Error:", err));
     }
 
-    function validateCurrentStep() {
+    async function validateCurrentStep() {
         const input = steps[currentStep].querySelector('input, textarea');
         if (input && !input.checkValidity()) {
             input.reportValidity();
             return false;
         }
         
-        // Special logic for phone -> OTP
+        // Special logic for phone -> OTP (Step 2, index 1)
         if (currentStep === 1) {
             if (phoneInput.value.length < 10) {
                 showToast("Invalid Phone", "Please enter a valid WhatsApp number", "error");
                 return false;
             }
-            sendOTP();
+
+            // Check for duplicate BEFORE sending OTP
+            try {
+                const btn = steps[currentStep].querySelector('.btn-next');
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Checking...';
+
+                const response = await fetch("{{ route('registration.check-duplicate') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({ 
+                        phone: phoneInput.value,
+                        workshop_id: "{{ $workshop->id }}"
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.exists) {
+                    showToast("Already Registered", data.message, "error");
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    return false;
+                }
+
+                // If not duplicate, send OTP and proceed
+                sendOTP();
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            } catch (err) {
+                console.error("Duplicate check error:", err);
+                // Fallback: allow if check fails? Or block? Let's block and show error.
+                showToast("System Error", "Unable to verify number. Please try again.", "error");
+                return false;
+            }
         }
 
-        // Special logic for OTP verification step (visual only, actual check is on submit usually or next)
+        // Special logic for OTP verification step (index 2)
         if (currentStep === 2) {
             const otpInput = document.getElementById('otp');
             if (otpInput.value.length < 4) {
@@ -566,10 +610,13 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     }
 
-    function goToNext() {
-        if (currentStep < totalSteps - 1 && validateCurrentStep()) {
-            currentStep++;
-            updateUI();
+    async function goToNext() {
+        if (currentStep < totalSteps - 1) {
+            const isValid = await validateCurrentStep();
+            if (isValid) {
+                currentStep++;
+                updateUI();
+            }
         }
     }
 
