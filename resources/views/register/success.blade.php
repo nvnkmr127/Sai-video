@@ -91,7 +91,9 @@
                             </div>
                             <div class="detail-group">
                                 <label>LOCATION</label>
-                                <span class="detail-value">{{ $registration->workshop->location }}</span>
+                                <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($registration->workshop->location) }}" target="_blank" class="detail-value location-link">
+                                    <i class="bi bi-geo-alt me-1"></i>{{ $registration->workshop->location }}
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -301,6 +303,20 @@
         display: block;
     }
 
+    .location-link {
+        color: #000;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .location-link:hover {
+        color: #555;
+        text-decoration: underline;
+        transform: translateX(3px);
+    }
+
     .pass-qr-section {
         margin-top: 0;
         padding-top: 0;
@@ -312,8 +328,8 @@
     }
 
     .qr-container {
-        width: 190px;
-        height: 190px;
+        width: 220px;
+        height: 220px;
         margin: 0 auto 1.5rem;
         padding: 1.25rem;
         border: 1px solid #eee;
@@ -428,7 +444,7 @@
         .pass-top, .pass-bottom { padding: 1.5rem 1.25rem; }
         .pass-workshop-title { font-size: 1.2rem; }
         .detail-row { flex-direction: column; gap: 1rem; }
-        .qr-container { width: 150px; height: 150px; padding: 1rem; }
+        .qr-container { width: 180px; height: 180px; padding: 1rem; }
         .token-display { min-width: 130px; padding: 0.75rem; }
         .success-icon-wrap { width: 70px; height: 70px; font-size: 2.5rem; }
     }
