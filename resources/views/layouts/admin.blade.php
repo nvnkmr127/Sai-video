@@ -202,8 +202,11 @@
         </a>
 
         <div class="nav-label mt-4">System Settings</div>
-        <a href="{{ route('admin.webhooks.index') }}" class="nav-link {{ request()->routeIs('admin.webhooks.*') ? 'active' : '' }}">
+        <a href="{{ route('admin.webhooks.index') }}" class="nav-link {{ request()->routeIs('admin.webhooks.*') && !request()->routeIs('admin.webhooks.logs') ? 'active' : '' }}">
             <i class="bi bi-broadcast-pin"></i> Webhook Config
+        </a>
+        <a href="{{ route('admin.webhooks.logs') }}" class="nav-link {{ request()->routeIs('admin.webhooks.logs') ? 'active' : '' }}">
+            <i class="bi bi-list-check"></i> Webhook Logs
         </a>
         <a href="{{ route('registration.validator', ['key' => config('app.desk_secret')]) }}" class="nav-link {{ request()->routeIs('registration.validator') ? 'active' : '' }}">
             <i class="bi bi-qr-code-scan"></i> QR Validator

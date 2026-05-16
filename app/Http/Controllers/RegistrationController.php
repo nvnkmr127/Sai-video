@@ -154,13 +154,25 @@ class RegistrationController extends Controller
                 // Replace placeholders in URL if any (e.g. for simple GET APIs)
                 $url = str_replace(['{{phone}}', '{{otp}}'], [urlencode($phone), $otp], $webhook->url);
                 
-                $response = Http::withHeaders([
-                    'X-Webhook-Secret' => $webhook->secret_token,
-                    'X-Event' => 'otp.send'
-                ])->post($url, [
+                $payload = [
                     'phone' => $phone,
                     'otp' => $otp,
                     'message' => "Your verification code is: {$otp}"
+                ];
+
+                $response = Http::withHeaders([
+                    'X-Webhook-Secret' => $webhook->secret_token,
+                    'X-Event' => 'otp.send'
+                ])->post($url, $payload);
+
+                // Log the OTP attempt
+                \App\Models\WebhookLog::create([
+                    'webhook_config_id' => $webhook->id,
+                    'registration_id' => null, // No registration yet during OTP
+                    'payload' => $payload,
+                    'response_status' => $response->status(),
+                    'response_body' => $response->body(),
+                    'sent_at' => now(),
                 ]);
                 
                 if ($response->successful()) {

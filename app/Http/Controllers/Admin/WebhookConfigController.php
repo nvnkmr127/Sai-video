@@ -103,6 +103,16 @@ class WebhookConfigController extends Controller
                 'X-Event' => $event
             ])->post($webhook->url, $payload);
 
+            // Log the test attempt
+            \App\Models\WebhookLog::create([
+                'webhook_config_id' => $webhook->id,
+                'registration_id' => null, // No registration for test
+                'payload' => $payload,
+                'response_status' => $response->status(),
+                'response_body' => $response->body(),
+                'sent_at' => now(),
+            ]);
+
             return response()->json([
                 'status' => $response->status(),
                 'success' => $response->successful(),

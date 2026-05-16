@@ -84,6 +84,10 @@ Route::prefix('admin')->middleware(['auth:admin', 'is_admin'])->group(function (
     Route::post('webhooks/{webhook}/test', [WebhookConfigController::class, 'test'])
         ->middleware('throttle:5,1')
         ->name('admin.webhooks.test');
+    
+    // Webhook Logs
+    Route::get('webhook-logs', [App\Http\Controllers\Admin\WebhookLogController::class, 'index'])->name('admin.webhooks.logs');
+    Route::get('webhook-logs/{log}', [App\Http\Controllers\Admin\WebhookLogController::class, 'show'])->name('admin.webhooks.log-show');
 
     // Settings
     Route::get('settings', [SettingsController::class, 'index'])->name('admin.settings.index');
