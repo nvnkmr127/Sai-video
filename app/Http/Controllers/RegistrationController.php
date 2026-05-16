@@ -339,7 +339,8 @@ class RegistrationController extends Controller
         if ($reg->qr_code_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($reg->qr_code_path)) {
             return response()->json([
                 'ready' => true, 
-                'url'   => \Illuminate\Support\Facades\Storage::disk('public')->url($reg->qr_code_path)
+                // Use relative path to avoid APP_URL / Mixed Content issues
+                'url'   => '/storage/' . $reg->qr_code_path
             ]);
         }
         return response()->json(['ready' => false]);

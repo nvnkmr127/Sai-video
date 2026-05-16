@@ -6,7 +6,7 @@
     <div class="slider-bg">
         @if(!empty($siteSettings['slider_images']))
             @foreach($siteSettings['slider_images'] as $index => $image)
-                <div class="slider-item {{ $index === 0 ? 'active' : '' }}" style="background-image: url('{{ Storage::url($image) }}')"></div>
+                <div class="slider-item {{ $index === 0 ? 'active' : '' }}" style="background-image: url('/storage/{{ $image }}')"></div>
             @endforeach
         @else
             <div class="slider-item active" style="background-image: url('/images/backgrounds/bg1.png')"></div>
@@ -45,7 +45,7 @@
                 <div class="qr-zone mb-4">
                     <div class="qr-wrapper">
                         @if($registration->qr_code_path)
-                            <img src="{{ Storage::disk('public')->url($registration->qr_code_path) }}" alt="QR Code" id="qr-image">
+                            <img src="/storage/{{ $registration->qr_code_path }}" alt="QR Code" id="qr-image">
                         @else
                             <img id="qr-image" style="display: none; width: 200px; height: 200px;" alt="QR Code">
                             <div class="qr-loading" id="qr-spinner">
