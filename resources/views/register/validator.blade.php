@@ -7,11 +7,44 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        body { background-color: #111827; color: #fff; font-family: system-ui, -apple-system, sans-serif; }
-        .scanner-container { max-width: 500px; margin: 0 auto; padding: 20px; }
-        #reader { width: 100%; border-radius: 12px; overflow: hidden; border: 2px solid #374151; background: #1f2937; }
-        .result-card { display: none; margin-top: 20px; border-radius: 12px; padding: 20px; animation: slideUp 0.3s ease-out; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        body { background-color: #111827; color: #fff; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; }
+        .scanner-container { max-width: 500px; margin: 0 auto; padding: 20px; position: relative; }
+        #reader { width: 100%; border-radius: 12px; overflow: hidden; border: 2px solid #374151; background: #1f2937; position: relative; }
+        
+        /* Flash Overlay */
+        #flashOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 9999; display: none; pointer-events: none;
+            opacity: 0; transition: opacity 0.1s ease-out;
+        }
+
+        .result-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 10000;
+            display: none; align-items: center; justify-content: center;
+            text-align: center; padding: 20px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .result-content { 
+            transform: scale(0.8); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            background: #1f2937; border-radius: 24px; padding: 40px 20px; width: 100%; max-width: 400px;
+            border: 2px solid #374151;
+        }
+
+        @keyframes popIn { to { transform: scale(1); } }
+        
+        .icon-circle {
+            width: 80px; height: 80px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; font-size: 40px;
+            margin: 0 auto 20px;
+        }
+
+        .success-accent { border-color: #10b981 !important; }
+        .error-accent { border-color: #ef4444 !important; }
+
         .btn-scan { padding: 15px; font-weight: 700; border-radius: 12px; font-size: 1.1rem; }
         #reader__dashboard_section_csr button { background: #6366f1 !important; color: white !important; border: none !important; padding: 10px 20px !important; border-radius: 8px !important; }
         .progress { background-color: #374151; }
@@ -39,38 +72,33 @@
 
         <div id="reader"></div>
 
+        <div id="flashOverlay"></div>
+
+        <div id="resultOverlay" class="result-overlay">
+            <div id="successContent" class="result-content success-accent" style="display: none;">
+                <div class="icon-circle bg-success bg-opacity-20 text-success">
+                    <i class="bi bi-check-lg"></i>
+                </div>
+                <h2 class="fw-bold mb-1 attendee-name"></h2>
+                <div class="workshop-title text-secondary small mb-4"></div>
+                <div class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-4 py-2 rounded-pill mb-4">
+                    CHECKED IN SUCCESSFULLY
+                </div>
+                <div class="text-muted small checkin-time"></div>
+                <button class="btn btn-outline-secondary w-100 mt-4 py-3 rounded-4" onclick="resetScanner()">CLOSE (3s)</button>
+            </div>
+
+            <div id="errorContent" class="result-content error-accent" style="display: none;">
+                <div class="icon-circle bg-danger bg-opacity-20 text-danger">
+                    <i class="bi bi-x-lg"></i>
+                </div>
+                <h3 class="fw-bold mb-2 error-message text-danger"></h3>
+                <p class="error-detail text-secondary small mb-4"></p>
+                <button class="btn btn-danger w-100 py-3 rounded-4" onclick="resetScanner()">TRY AGAIN</button>
+            </div>
+        </div>
+
         <div class="mt-4 d-grid gap-2">
-            <div class="input-group">
-                <input type="text" id="manualToken" class="form-control bg-dark text-white border-secondary" placeholder="Enter token manually...">
-                <button class="btn btn-primary" type="button" id="submitManual">Verify</button>
-            </div>
-        </div>
-
-        <div id="resultArea">
-            <!-- Success Card -->
-            <div id="successCard" class="result-card bg-success text-white">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="fs-1"><i class="bi bi-check-circle-fill"></i></div>
-                    <div>
-                        <h5 class="fw-bold mb-0 attendee-name"></h5>
-                        <p class="mb-0 workshop-title small"></p>
-                        <small class="checkin-time"></small>
-                    </div>
-                </div>
-                <div class="mt-3 small fw-bold">CHECKED IN SUCCESSFULLY</div>
-            </div>
-
-            <!-- Error Card -->
-            <div id="errorCard" class="result-card bg-danger text-white">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="fs-1"><i class="bi bi-exclamation-triangle-fill"></i></div>
-                    <div>
-                        <h5 class="fw-bold mb-0 error-message"></h5>
-                        <p class="mb-0 error-detail small"></p>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <div class="text-center mt-5">
             <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()">Reset Page</button>
@@ -80,9 +108,10 @@
     <script>
         const html5QrCode = new Html5Qrcode("reader");
         const deskKey = "{{ $key }}";
-        const resultArea = document.getElementById('resultArea');
-        const successCard = document.getElementById('successCard');
-        const errorCard = document.getElementById('errorCard');
+        const resultOverlay = document.getElementById('resultOverlay');
+        const successContent = document.getElementById('successContent');
+        const errorContent = document.getElementById('errorContent');
+        const flashOverlay = document.getElementById('flashOverlay');
         let isProcessing = false;
 
         function refreshStats() {
@@ -100,7 +129,30 @@
         refreshStats();
         setInterval(refreshStats, 15000);
 
-        function playBeep(success) {
+        function triggerFlash(color) {
+            flashOverlay.style.background = color;
+            flashOverlay.style.display = 'block';
+            flashOverlay.style.opacity = '0.8';
+            setTimeout(() => {
+                flashOverlay.style.opacity = '0';
+                setTimeout(() => { flashOverlay.style.display = 'none'; }, 100);
+            }, 100);
+        }
+
+        function playFeedback(success) {
+            // Flash effect
+            triggerFlash(success ? '#10b981' : '#ef4444');
+
+            // Haptic Feedback (Vibration)
+            if (navigator.vibrate) {
+                if (success) {
+                    navigator.vibrate([100, 50, 100]); // Sharp double pulse
+                } else {
+                    navigator.vibrate([300, 100, 300, 100, 300]); // Long warning pulses
+                }
+            }
+
+            // Audio Feedback
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = ctx.createOscillator();
@@ -113,8 +165,6 @@
                 gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
                 osc.start(ctx.currentTime);
                 osc.stop(ctx.currentTime + 0.4);
-                // Mobile vibration
-                if (navigator.vibrate) navigator.vibrate(success ? [100] : [200, 100, 200]);
             } catch (e) {
                 console.warn("Audio feedback failed:", e);
             }
@@ -151,16 +201,15 @@
                 return response.json();
             })
             .then(data => {
-                hideAllCards();
+                hideAllResults();
                 if (data.success) {
                     showSuccess(data);
-                    playBeep(true);
+                    playFeedback(true);
                     refreshStats();
-                    setTimeout(resetScanner, 3000);
+                    setTimeout(resetScanner, 4000);
                 } else {
                     showError(data);
-                    playBeep(false);
-                    setTimeout(resetScanner, 5000);
+                    playFeedback(false);
                 }
             })
             .catch(err => {
@@ -172,7 +221,7 @@
 
         function resetScanner() {
             isProcessing = false;
-            hideAllCards();
+            hideAllResults();
             document.getElementById('manualToken').disabled = false;
             document.getElementById('submitManual').disabled = false;
             document.getElementById('submitManual').textContent = 'Verify';
@@ -185,22 +234,27 @@
             }
         }
 
-        function hideAllCards() {
-            successCard.style.display = 'none';
-            errorCard.style.display = 'none';
+        function hideAllResults() {
+            resultOverlay.style.display = 'none';
+            successContent.style.display = 'none';
+            errorContent.style.display = 'none';
         }
 
         function showSuccess(data) {
-            successCard.querySelector('.attendee-name').textContent = data.attendee;
-            successCard.querySelector('.workshop-title').textContent = data.workshop;
-            successCard.querySelector('.checkin-time').textContent = `Time: ${data.time}`;
-            successCard.style.display = 'block';
+            successContent.querySelector('.attendee-name').textContent = data.attendee;
+            successContent.querySelector('.workshop-title').textContent = data.workshop;
+            successContent.querySelector('.checkin-time').textContent = `Verified at: ${data.time}`;
+            
+            resultOverlay.style.display = 'flex';
+            successContent.style.display = 'block';
         }
 
         function showError(data) {
-            errorCard.querySelector('.error-message').textContent = data.message;
-            errorCard.querySelector('.error-detail').textContent = data.attendee ? `Attendee: ${data.attendee} (${data.time})` : 'Try again or enter manually.';
-            errorCard.style.display = 'block';
+            errorContent.querySelector('.error-message').textContent = data.message;
+            errorContent.querySelector('.error-detail').textContent = data.attendee ? `Already checked in: ${data.attendee} (${data.time})` : 'Invalid or unapproved ticket.';
+            
+            resultOverlay.style.display = 'flex';
+            errorContent.style.display = 'block';
         }
 
         // Manual Submit
