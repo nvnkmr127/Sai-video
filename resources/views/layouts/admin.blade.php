@@ -176,15 +176,39 @@
         .badge-pill { padding: 0.4rem 1rem; border-radius: 2rem; font-size: 0.75rem; font-weight: 700; }
 
         @media (max-width: 992px) {
-            .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+            .sidebar { 
+                transform: translateX(-100%); 
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            }
             .sidebar.active { transform: translateX(0); }
-            .main-content { margin-left: 0; width: 100%; padding: 1.5rem; }
+            .main-content { 
+                margin-left: 0; 
+                width: 100%; 
+                padding: 1.5rem; 
+            }
+            .sidebar-overlay {
+                position: fixed;
+                top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(15, 23, 42, 0.5);
+                backdrop-filter: blur(4px);
+                z-index: 999;
+                display: none;
+                opacity: 0;
+                transition: opacity 0.3s;
+            }
+            .sidebar-overlay.active {
+                display: block;
+                opacity: 1;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <a href="{{ route('admin.dashboard') }}" class="brand">
             <i class="bi bi-cpu-fill"></i>
             <span>{{ config('app.name') }}</span>
@@ -235,14 +259,19 @@
     <!-- Main Content -->
     <main class="main-content">
         <header class="header">
-            <div>
-                <h2 class="fw-bold mb-1">@yield('title', 'Overview')</h2>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item text-muted small">Admin</li>
-                        <li class="breadcrumb-item active text-primary small" aria-current="page">@yield('title', 'Dashboard')</li>
-                    </ol>
-                </nav>
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-light d-lg-none border-0 shadow-none p-0 fs-3" id="sidebarToggle">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div>
+                    <h2 class="fw-bold mb-0">@yield('title', 'Overview')</h2>
+                    <nav aria-label="breadcrumb" class="d-none d-sm-block">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item text-muted small">Admin</li>
+                            <li class="breadcrumb-item active text-primary small" aria-current="page">@yield('title', 'Dashboard')</li>
+                        </ol>
+                    </nav>
+                </div>
             </div>
             <div class="d-flex gap-3">
                 <div class="stat-value fs-5 d-none d-md-block text-muted">
@@ -274,5 +303,26 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+            function toggleSidebar() {
+                sidebar.classList.toggle('active');
+                sidebarOverlay.classList.toggle('active');
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+            }
+
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', toggleSidebar);
+            }
+
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', toggleSidebar);
+            }
+        });
+    </script>
 </body>
 </html>
