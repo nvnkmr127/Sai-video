@@ -38,6 +38,18 @@ Route::middleware('guest:admin')->group(function () {
     Route::get('/admin/login', [App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('admin.login');
     Route::post('/admin/login', [App\Http\Controllers\Auth\LoginController::class, 'login'])
         ->middleware('throttle:5,1');
+    
+    // Dev Autologin
+    if (app()->isLocal()) {
+        Route::get('/admin/autologin', function() {
+            $user = \App\Models\User::where('is_admin', true)->first();
+            if ($user) {
+                \Illuminate\Support\Facades\Auth::guard('admin')->login($user);
+                return redirect()->route('admin.dashboard');
+            }
+            return 'No admin user found to autologin.';
+        })->name('admin.autologin');
+    }
 });
 
 // Admin Portal (Protected)

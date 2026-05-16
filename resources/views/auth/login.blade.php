@@ -191,6 +191,19 @@
                 Enter Dashboard <i class="bi bi-arrow-right ms-2"></i>
             </button>
 
+            @if(app()->isLocal())
+                <div class="mt-4 text-center">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="flex-grow-1 border-top border-secondary opacity-25"></div>
+                        <span class="text-muted small text-uppercase fw-bold opacity-50" style="font-size: 0.65rem;">Development</span>
+                        <div class="flex-grow-1 border-top border-secondary opacity-25"></div>
+                    </div>
+                    <a href="{{ route('admin.autologin') }}" class="btn btn-outline-info w-100 border-2 py-2 fw-bold" style="border-radius: 1rem;">
+                        <i class="bi bi-magic me-2"></i> Quick Autologin
+                    </a>
+                </div>
+            @endif
+
             <div class="text-center">
                 <a href="{{ route('registration.index') }}" class="back-link">
                     <i class="bi bi-arrow-left"></i> Return to Registration
