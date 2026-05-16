@@ -1,94 +1,111 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="typeform-container">
-    <!-- Background Slider -->
-    <div class="slider-bg">
+<div class="success-page">
+    <!-- Immersive Background -->
+    <div class="dynamic-bg">
         @if(!empty($siteSettings['slider_images']))
             @foreach($siteSettings['slider_images'] as $index => $image)
-                <div class="slider-item {{ $index === 0 ? 'active' : '' }}" style="background-image: url('/storage/{{ $image }}')"></div>
+                <div class="bg-layer {{ $index === 0 ? 'active' : '' }}" style="background-image: url('/storage/{{ $image }}')"></div>
             @endforeach
         @else
-            <div class="slider-item active" style="background-image: url('/images/backgrounds/bg1.png')"></div>
-            <div class="slider-item" style="background-image: url('/images/backgrounds/bg2.png')"></div>
+            <div class="bg-layer active" style="background-image: url('/images/backgrounds/bg1.png')"></div>
+            <div class="bg-layer" style="background-image: url('/images/backgrounds/bg2.png')"></div>
         @endif
-        <div class="slider-overlay"></div>
+        <div class="bg-overlay"></div>
     </div>
 
-    <div class="tf-step active">
-        <div class="ticket-container">
-            <!-- Ticket Top -->
-            <div class="ticket-header">
-                <div class="workshop-label">OFFICIAL ENTRY PASS</div>
-                <h1 class="workshop-name">{{ $registration->workshop->title }}</h1>
-                <div class="workshop-date">
-                    <i class="bi bi-calendar3 me-2"></i> {{ $registration->workshop->date->format('M d, Y') }} 
-                    <span class="mx-2">|</span>
-                    <i class="bi bi-geo-alt me-2"></i> {{ $registration->workshop->location }}
+    <div class="content-wrapper">
+        <div class="glass-card">
+            <!-- Success Header -->
+            <div class="success-header">
+                <div class="success-icon-wrap">
+                    <div class="pulse-circle"></div>
+                    <i class="bi bi-check-lg"></i>
                 </div>
+                <h1 class="gradient-text">Registration Success!</h1>
+                <p class="status-msg text-muted">Your entry pass is ready for the workshop</p>
             </div>
 
-            <!-- Perforation -->
-            <div class="ticket-divider">
-                <div class="circle circle-left"></div>
-                <div class="dashed-line"></div>
-                <div class="circle circle-right"></div>
-            </div>
-
-            <!-- Ticket Body -->
-            <div class="ticket-body text-center">
-                <div class="attendee-info mb-4">
-                    <div class="small text-muted text-uppercase letter-spacing-2">Attendee</div>
-                    <div class="attendee-name h3 fw-bold">{{ $registration->full_name }}</div>
+            <!-- Pass Design -->
+            <div class="pass-container">
+                <div class="pass-top">
+                    <div class="workshop-meta">
+                        <span class="category-tag">OFFICIAL ENTRY PASS</span>
+                        <h2 class="pass-workshop-title">{{ $registration->workshop->title }}</h2>
+                    </div>
                 </div>
 
-                @if($registration->status === 'approved')
-                    <div class="qr-zone mb-4">
-                        <div class="qr-wrapper">
-                            @if($registration->qr_code_path)
-                                <img src="/storage/{{ $registration->qr_code_path }}" alt="QR Code" id="qr-image">
-                            @else
-                                <img id="qr-image" style="display: none; width: 200px; height: 200px;" alt="QR Code">
-                                <div class="qr-loading" id="qr-spinner">
-                                    <div class="spinner-border text-primary mb-2"></div>
-                                    <div>GENERATING YOUR QR CODE...</div>
+                <div class="pass-divider">
+                    <div class="cutout-left"></div>
+                    <div class="pass-line"></div>
+                    <div class="cutout-right"></div>
+                </div>
+
+                <div class="pass-bottom">
+                    <div class="attendee-details">
+                        <div class="detail-row">
+                            <div class="detail-group">
+                                <label>ATTENDEE</label>
+                                <span class="detail-value">{{ $registration->full_name }}</span>
+                            </div>
+                        </div>
+                        <div class="detail-row mt-3">
+                            <div class="detail-group">
+                                <label>DATE</label>
+                                <span class="detail-value">{{ $registration->workshop->date->format('M d, Y') }}</span>
+                            </div>
+                            <div class="detail-group">
+                                <label>LOCATION</label>
+                                <span class="detail-value">{{ $registration->workshop->location }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pass-qr-section">
+                        @if($registration->status === 'approved')
+                            <div class="qr-container">
+                                @if($registration->qr_code_path)
+                                    <img src="/storage/{{ $registration->qr_code_path }}" alt="Pass QR" id="qr-image" class="qr-img">
+                                @else
+                                    <div class="qr-placeholder" id="qr-spinner">
+                                        <div class="spinner-custom"></div>
+                                        <span>GENERATING...</span>
+                                    </div>
+                                    <img id="qr-image" class="qr-img" style="display: none;">
+                                @endif
+                            </div>
+                            <div class="token-display">
+                                <span class="token-label">PASS IDENTIFIER</span>
+                                <span class="token-code">{{ $registration->qr_code_token }}</span>
+                            </div>
+                        @else
+                            <div class="pending-status py-4">
+                                <div class="pending-icon">
+                                    <i class="bi bi-clock-history"></i>
                                 </div>
-                            @endif
-                        </div>
-                        <div id="qr-actions" style="display: {{ $registration->qr_code_path ? 'block' : 'none' }};"></div>
+                                <h3 class="h5 fw-bold mb-2">Verification Pending</h3>
+                                <p class="small text-muted mb-3">Our team is reviewing your registration. You will receive your digital pass once approved.</p>
+                                <div class="pending-badge">WAITING LIST</div>
+                            </div>
+                        @endif
                     </div>
-                @else
-                    <div class="status-zone py-5 mb-4">
-                        <div class="icon-box mb-3">
-                            <i class="bi bi-hourglass-split text-warning fs-1"></i>
-                        </div>
-                        <h4 class="fw-bold text-dark">Registration Pending</h4>
-                        <p class="text-muted small px-4">Your registration is in our waiting list. Our team will verify your details and notify you once approved.</p>
-                        <div class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2 rounded-pill">
-                            <i class="bi bi-clock-fill me-1"></i> WAITING FOR APPROVAL
-                        </div>
-                    </div>
-                @endif
-
-                <div class="token-zone">
-                    <div class="token-label">Access Token</div>
-                    <div class="token-value">{{ $registration->qr_code_token }}</div>
                 </div>
             </div>
 
-            <!-- Ticket Footer -->
-            <div class="ticket-footer">
-                <a href="{{ route('registration.index') }}" class="btn-register-more">
-                    <i class="bi bi-plus-circle me-2"></i> Register Another Person
-                </a>
+            <!-- Action Buttons -->
+            <div class="pass-actions">
+                <button onclick="window.print()" class="btn-action secondary">
+                    <i class="bi bi-printer me-2"></i> Print or Save Pass
+                </button>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    .typeform-container {
-        width: 100%;
+    /* Premium Glassmorphism Theme */
+    .success-page {
         min-height: 100vh;
         display: flex;
         align-items: center;
@@ -96,218 +113,352 @@
         padding: 4rem 1.5rem;
     }
 
-    .ticket-container {
-        max-width: 450px;
-        width: 100%;
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(20px) saturate(180%);
-        border-radius: 2.5rem;
-        box-shadow: 0 40px 100px -20px rgba(0,0,0,0.3);
-        overflow: hidden;
-        animation: ticketEntrance 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    .dynamic-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
     }
 
-    @keyframes ticketEntrance {
+    .bg-layer {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+        background-position: center;
+        opacity: 0;
+        transition: opacity 2.5s ease-in-out;
+    }
+
+    .bg-layer.active { opacity: 1; }
+
+    .bg-overlay {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.6) 100%);
+        backdrop-filter: blur(8px);
+    }
+
+    .content-wrapper {
+        width: 100%;
+        max-width: 480px;
+        z-index: 1;
+    }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(40px) saturate(180%);
+        -webkit-backdrop-filter: blur(40px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 3rem;
+        padding: 3.5rem 2.5rem;
+        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.15);
+        animation: cardAppear 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        text-align: center;
+    }
+
+    @keyframes cardAppear {
         from { opacity: 0; transform: translateY(40px) scale(0.95); }
         to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    .ticket-header {
-        padding: 3rem 2.5rem 2rem;
-        background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1));
-        text-align: center;
-    }
-
-    .workshop-label {
-        font-size: 0.75rem;
-        font-weight: 800;
-        letter-spacing: 4px;
-        color: #6366f1;
-        margin-bottom: 1rem;
-    }
-
-    .workshop-name {
-        font-family: 'Outfit', sans-serif;
-        font-size: 1.75rem;
-        font-weight: 800;
-        line-height: 1.2;
-        margin-bottom: 1rem;
-        color: #0f172a;
-    }
-
-    .workshop-date {
-        font-size: 0.9rem;
-        color: #64748b;
-        font-weight: 500;
-    }
-
-    .ticket-divider {
+    .success-icon-wrap {
         position: relative;
-        height: 40px;
+        width: 90px;
+        height: 90px;
+        margin: 0 auto 2rem;
         display: flex;
         align-items: center;
         justify-content: center;
-    }
-
-    .dashed-line {
-        width: 100%;
-        border-top: 2px dashed rgba(0,0,0,0.1);
-        margin: 0 20px;
-    }
-
-    .circle {
-        position: absolute;
-        width: 40px;
-        height: 40px;
-        background: #f8fafc; /* Should match bg if not transparent */
+        background: #000;
+        color: #fff;
         border-radius: 50%;
-        top: 0;
+        font-size: 3rem;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.2);
     }
 
-    .circle-left { left: -20px; box-shadow: inset -5px 0 10px rgba(0,0,0,0.05); }
-    .circle-right { right: -20px; box-shadow: inset 5px 0 10px rgba(0,0,0,0.05); }
-
-    .ticket-body {
-        padding: 2rem 2.5rem;
+    .pulse-circle {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border: 2px solid #000;
+        border-radius: 50%;
+        animation: pulse 2.5s infinite;
     }
 
-    .attendee-name {
-        color: #0f172a;
-        font-size: 1.5rem;
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 0.8; }
+        100% { transform: scale(1.8); opacity: 0; }
     }
 
-    .qr-wrapper {
-        background: #ffffff;
-        padding: 1.5rem;
+    .gradient-text {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 800;
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+        background: linear-gradient(135deg, #000 0%, #555 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -1px;
+    }
+
+    .status-msg {
+        font-size: 1rem;
+        font-weight: 500;
+        margin-bottom: 3rem;
+        opacity: 0.8;
+    }
+
+    /* Pass Styling */
+    .pass-container {
+        background: #fff;
         border-radius: 2rem;
-        display: inline-block;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-        border: 1px solid rgba(0,0,0,0.05);
+        overflow: hidden;
+        box-shadow: 0 15px 45px rgba(0,0,0,0.06);
+        margin-bottom: 2.5rem;
+        border: 1px solid rgba(0,0,0,0.03);
     }
 
-    .qr-wrapper img {
-        width: 200px;
-        height: 200px;
+    .pass-top {
+        padding: 2.5rem 2rem;
+        background: #fdfdfd;
+        border-bottom: 1px solid #f8f8f8;
+    }
+
+    .category-tag {
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 3px;
+        color: #a0a0a0;
+        display: block;
+        margin-bottom: 0.75rem;
+    }
+
+    .pass-workshop-title {
+        font-family: 'Outfit', sans-serif;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #000;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .pass-divider {
+        height: 40px;
+        display: flex;
+        align-items: center;
+        position: relative;
+        background: #fff;
+    }
+
+    .pass-line {
+        flex-grow: 1;
+        border-top: 2px dashed #eee;
+        margin: 0 1.5rem;
+    }
+
+    .cutout-left, .cutout-right {
+        width: 34px;
+        height: 34px;
+        background: #e9ecef; /* Slightly darker to show depth in glass */
+        border-radius: 50%;
+        position: absolute;
+    }
+    .cutout-left { left: -17px; box-shadow: inset -5px 0 10px rgba(0,0,0,0.03); }
+    .cutout-right { right: -17px; box-shadow: inset 5px 0 10px rgba(0,0,0,0.03); }
+
+    .pass-bottom {
+        padding: 2.5rem 2rem;
+    }
+
+    .detail-row {
+        display: flex;
+        gap: 1.5rem;
+        text-align: left;
+    }
+
+    .detail-group {
+        flex: 1;
+    }
+
+    .detail-group label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #b0b0b0;
+        letter-spacing: 1.5px;
+        margin-bottom: 0.35rem;
+        text-transform: uppercase;
+    }
+
+    .detail-value {
+        font-weight: 600;
+        color: #222;
+        font-size: 1rem;
         display: block;
     }
 
-    .qr-loading {
-        width: 200px;
-        height: 200px;
+    .pass-qr-section {
+        margin-top: 1.5rem;
+        padding-top: 2rem;
+        border-top: 1px solid #f5f5f5;
+    }
+
+    .qr-container {
+        width: 190px;
+        height: 190px;
+        margin: 0 auto 1.5rem;
+        padding: 1.25rem;
+        border: 1px solid #eee;
+        border-radius: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.03);
+    }
+
+    .qr-img { width: 100%; height: 100%; object-fit: contain; }
+
+    .qr-placeholder {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        gap: 1rem;
+        font-size: 0.75rem;
         font-weight: 800;
-        font-size: 0.7rem;
-        color: #94a3b8;
+        color: #ccc;
         letter-spacing: 1px;
     }
 
-    .token-zone {
-        background: rgba(0,0,0,0.03);
+    .spinner-custom {
+        width: 32px;
+        height: 32px;
+        border: 3px solid #f0f0f0;
+        border-top-color: #000;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .token-display {
+        background: #f9f9f9;
         padding: 1rem;
-        border-radius: 1rem;
-        margin-top: 2rem;
-    }
-
-    .token-label {
-        font-size: 0.65rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        color: #94a3b8;
-        margin-bottom: 0.25rem;
-    }
-
-    .token-value {
-        font-family: monospace;
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #1e293b;
-        word-break: break-all;
-    }
-
-    .ticket-footer {
-        padding: 2.5rem;
-        text-align: center;
-    }
-
-    .btn-register-more {
-        display: inline-block;
-        background: #0f172a;
-        color: #ffffff;
-        text-decoration: none;
-        padding: 1.25rem 2rem;
         border-radius: 1.25rem;
+        display: inline-flex;
+        flex-direction: column;
+        min-width: 160px;
+        border: 1px solid #f0f0f0;
+    }
+
+    .token-label { font-size: 0.65rem; font-weight: 800; color: #aaa; margin-bottom: 0.25rem; letter-spacing: 1px; }
+    .token-code { font-family: 'Monaco', 'Consolas', monospace; font-size: 0.9rem; font-weight: 700; color: #000; }
+
+    .pending-status .pending-icon {
+        font-size: 3.5rem;
+        color: #f59e0b;
+        margin-bottom: 1.25rem;
+        animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    .pending-badge {
+        display: inline-block;
+        background: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fde68a;
+        padding: 0.6rem 1.5rem;
+        border-radius: 2rem;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
+
+    .btn-action {
+        width: 100%;
+        padding: 1.25rem;
+        border-radius: 1.5rem;
         font-weight: 700;
         font-size: 1rem;
-        transition: all 0.3s ease;
-        width: 100%;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        border: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        color: #fff;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
     }
 
-    .btn-register-more:hover {
-        background: #1e293b;
-        transform: translateY(-2px);
-        color: #fff;
-        box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+    .btn-action:hover {
+        background: #222;
+        transform: translateY(-3px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.25);
     }
+
+    .btn-action:active { transform: translateY(-1px); }
 
     @media (max-width: 480px) {
-        .ticket-container { border-radius: 2rem; }
-        .workshop-name { font-size: 1.5rem; }
-        .qr-wrapper img, .qr-loading { width: 160px; height: 160px; }
+        .glass-card { padding: 2.5rem 1.5rem; border-radius: 2.5rem; }
+        .gradient-text { font-size: 2rem; }
+        .detail-row { flex-direction: column; gap: 1rem; }
+        .qr-container { width: 160px; height: 160px; }
     }
 
-    /* Background Slider */
-    .slider-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
-    .slider-item { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; opacity: 0; transition: opacity 2s ease; }
-    .slider-item.active { opacity: 1; }
-    .slider-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.7) 100%); }
+    @media print {
+        .dynamic-bg, .success-header, .pass-actions { display: none; }
+        body { background: white; }
+        .success-page { padding: 0; }
+        .glass-card { background: none; box-shadow: none; border: none; padding: 0; }
+        .pass-container { border: 1px solid #ddd; border-radius: 1rem; box-shadow: none; }
+        .cutout-left, .cutout-right { background: white; border: 1px solid #ddd; }
+    }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Background slider logic
-    const sliderItems = document.querySelectorAll('.slider-item');
-    if (sliderItems.length > 1) {
-        let index = 0;
+    // Background Layer Rotation
+    const layers = document.querySelectorAll('.bg-layer');
+    if (layers.length > 1) {
+        let current = 0;
         setInterval(() => {
-            sliderItems[index].classList.remove('active');
-            index = (index + 1) % sliderItems.length;
-            sliderItems[index].classList.add('active');
-        }, 5000);
+            layers[current].classList.remove('active');
+            current = (current + 1) % layers.length;
+            layers[current].classList.add('active');
+        }, 6000);
     }
 
-    // Poll every 2 seconds until QR is ready
-    @if(!$registration->qr_code_path)
-    function pollForQr() {
+    // QR Code Generation Polling
+    @if($registration->status === 'approved' && !$registration->qr_code_path)
+    const pollForQr = () => {
         fetch('/qr-status/{{ $registration->qr_code_token }}')
-            .then(r => r.json())
+            .then(res => {
+                if (!res.ok) throw new Error();
+                return res.json();
+            })
             .then(data => {
                 if (data.ready) {
                     const spinner = document.getElementById('qr-spinner');
                     const img = document.getElementById('qr-image');
-                    const actions = document.getElementById('qr-actions');
-                    
                     if (spinner) spinner.style.display = 'none';
                     if (img) {
                         img.src = data.url;
                         img.style.display = 'block';
+                        img.classList.add('animate__animated', 'animate__fadeIn');
                     }
-                    if (actions) actions.style.display = 'block';
                 } else {
                     setTimeout(pollForQr, 2000);
                 }
             })
-            .catch(err => {
-                console.error("Polling error:", err);
-                setTimeout(pollForQr, 5000); // Retry after 5s on error
-            });
-    }
+            .catch(() => setTimeout(pollForQr, 5000));
+    };
     setTimeout(pollForQr, 2000);
     @endif
 });
 </script>
 @endsection
+
