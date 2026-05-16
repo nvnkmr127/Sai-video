@@ -5,36 +5,47 @@
 @section('content')
 <!-- Summary Stats Bar -->
 <div class="row g-4 mb-4">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="stat-card p-3 d-flex align-items-center gap-3">
             <div class="stat-icon m-0" style="width: 40px; height: 40px; font-size: 1rem;">
-                <i class="bi bi-filter"></i>
+                <i class="bi bi-people"></i>
             </div>
             <div>
-                <div class="small text-muted">Filtered Total</div>
+                <div class="small text-muted">Total Entries</div>
                 <div class="fw-bold">{{ $scopedStats['total'] }}</div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
+        <div class="stat-card p-3 d-flex align-items-center gap-3">
+            <div class="stat-icon m-0 text-warning" style="width: 40px; height: 40px; font-size: 1rem; background: rgba(245, 158, 11, 0.1);">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <div>
+                <div class="small text-muted">Waiting List</div>
+                <div class="fw-bold">{{ $scopedStats['waiting'] }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card p-3 d-flex align-items-center gap-3">
+            <div class="stat-icon m-0 text-info" style="width: 40px; height: 40px; font-size: 1rem; background: rgba(6, 182, 212, 0.1);">
+                <i class="bi bi-patch-check"></i>
+            </div>
+            <div>
+                <div class="small text-muted">Approved</div>
+                <div class="fw-bold">{{ $scopedStats['approved'] }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
         <div class="stat-card p-3 d-flex align-items-center gap-3">
             <div class="stat-icon m-0 text-success" style="width: 40px; height: 40px; font-size: 1rem; background: rgba(16, 185, 129, 0.1);">
                 <i class="bi bi-check2-circle"></i>
             </div>
             <div>
-                <div class="small text-muted">Filtered Checked-In</div>
+                <div class="small text-muted">Checked In</div>
                 <div class="fw-bold">{{ $scopedStats['checked_in'] }}</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="stat-card p-3 d-flex align-items-center gap-3">
-            <div class="stat-icon m-0 text-warning" style="width: 40px; height: 40px; font-size: 1rem; background: rgba(245, 158, 11, 0.1);">
-                <i class="bi bi-clock-history"></i>
-            </div>
-            <div>
-                <div class="small text-muted">Filtered Pending</div>
-                <div class="fw-bold">{{ $scopedStats['pending'] }}</div>
             </div>
         </div>
     </div>
@@ -65,8 +76,9 @@
             <label class="form-label text-muted small">Status</label>
             <select name="status" class="form-select bg-transparent border-secondary text-white">
                 <option value="" class="bg-dark">All Status</option>
+                <option value="waiting" {{ request('status') == 'waiting' ? 'selected' : '' }} class="bg-dark">Waiting List</option>
+                <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }} class="bg-dark">Approved</option>
                 <option value="checked_in" {{ request('status') == 'checked_in' ? 'selected' : '' }} class="bg-dark">Checked In</option>
-                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }} class="bg-dark">Pending</option>
             </select>
         </div>
         <div class="col-md-3 d-flex align-items-end gap-2">
@@ -111,13 +123,31 @@
                             <div class="small">{{ $reg->created_at->format('M d, H:i') }}</div>
                         </td>
                         <td>
-                            @if($reg->checked_in_at)
-                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">Checked In</span>
+                            @if($reg->status === 'approved')
+                                @if($reg->checked_in_at)
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">
+                                        <i class="bi bi-check2-all me-1"></i> Checked In
+                                    </span>
+                                @else
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3">
+                                        <i class="bi bi-patch-check me-1"></i> Approved
+                                    </span>
+                                @endif
                             @else
-                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3">Pending</span>
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3">
+                                    <i class="bi bi-hourglass-split me-1"></i> Waiting List
+                                </span>
                             @endif
                         </td>
                         <td class="text-end pe-4 d-flex gap-2 justify-content-end align-items-center">
+                            @if($reg->status === 'pending')
+                                <form method="POST" action="{{ route('admin.registrations.approve', $reg->id) }}">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="bi bi-check-lg"></i> Approve
+                                    </button>
+                                </form>
+                            @endif
                             <a href="{{ route('admin.registrations.show', $reg->id) }}" 
                                class="btn btn-sm btn-outline-primary">View</a>
                             <form method="POST" 

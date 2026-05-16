@@ -73,6 +73,7 @@ Route::middleware('guest:admin')->group(function () {
 Route::prefix('admin')->middleware(['auth:admin', 'is_admin'])->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/registrations', [AdminController::class, 'registrations'])->name('admin.registrations.index');
+    Route::post('/registrations/{id}/approve', [AdminController::class, 'approve'])->name('admin.registrations.approve');
     Route::get('/registrations/export', [AdminController::class, 'exportRegistrations'])->name('admin.registrations.export');
     Route::get('/registrations/{id}', [AdminController::class, 'show'])->name('admin.registrations.show');
     Route::post('/registrations/{id}/checkin', [AdminController::class, 'manualCheckin'])->name('admin.registrations.checkin');

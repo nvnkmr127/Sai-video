@@ -75,6 +75,10 @@ class RegistrationController extends Controller
         // OTP Verification Logic
         $phone = $validated['phone'];
         $submittedOtp = $validated['otp'];
+
+        // Normalize for consistent duplicate check
+        $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
+
         $cachedOtp = Cache::get('otp_' . $phone);
 
         if (!$cachedOtp || (string)$cachedOtp !== (string)$submittedOtp) {
@@ -82,9 +86,12 @@ class RegistrationController extends Controller
         }
         Cache::forget('otp_' . $phone);
 
-        // Check for duplicate phone + workshop combination
+        // Check for duplicate phone + workshop combination using normalized phone
         $alreadyRegistered = Registration::where('workshop_id', $workshop->id)
-            ->where('phone', $phone)
+            ->where(function($q) use ($normalizedPhone) {
+                $q->where('phone', 'like', "%{$normalizedPhone}")
+                  ->orWhere('phone', $normalizedPhone);
+            })
             ->exists();
 
         if ($alreadyRegistered) {
@@ -104,17 +111,20 @@ class RegistrationController extends Controller
         } while (Registration::where('qr_code_token', $token)->exists());
 
         $validated['qr_code_token'] = $token;
+        $validated['status'] = 'pending'; // Default status is pending for waiting list
 
         $registration = Registration::create($validated);
 
-        Log::info("New registration: {$registration->full_name} for workshop: {$workshop->title}");
+        Log::info("New registration (Waiting List): {$registration->full_name} for workshop: {$workshop->title}");
 
-        // Dispatch the pipeline: GenerateQR → SendWebhook
+        // Dispatch a "Pending" Webhook so admin systems know there is a new application to review
         if (app()->isLocal()) {
-            RegistrationCreated::dispatchSync($registration);
+            \App\Jobs\SendWebhookJob::dispatchSync($registration, null, 'registration.pending');
         } else {
-            RegistrationCreated::dispatch($registration);
+            \App\Jobs\SendWebhookJob::dispatch($registration, null, 'registration.pending');
         }
+
+        // DO NOT dispatch RegistrationCreated here. It will be dispatched on Approval.
 
         return redirect()->route('registration.success', $registration->qr_code_token);
     }
@@ -126,8 +136,15 @@ class RegistrationController extends Controller
             'workshop_id' => 'required|exists:workshops,id'
         ]);
 
+        $phone = $request->phone;
+        // Normalize: Strip +91, 91 prefix if it exists to compare only the last 10 digits
+        $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
+
         $exists = Registration::where('workshop_id', $request->workshop_id)
-            ->where('phone', $request->phone)
+            ->where(function($q) use ($normalizedPhone) {
+                $q->where('phone', 'like', "%{$normalizedPhone}")
+                  ->orWhere('phone', $normalizedPhone);
+            })
             ->exists();
 
         return response()->json([
@@ -141,8 +158,11 @@ class RegistrationController extends Controller
         $request->validate(['phone' => 'required|string']);
         $phone = $request->phone;
         
-        // Rate limit by phone number (cache-based, 3 OTPs per phone per 10 minutes)
-        $otpAttemptKey = 'otp_attempts_' . md5($phone);
+        // Normalize for consistent rate limiting and storage
+        $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
+        
+        // Rate limit by normalized phone number
+        $otpAttemptKey = 'otp_attempts_' . md5($normalizedPhone);
         $attempts = Cache::get($otpAttemptKey, 0);
         if ($attempts >= 3) {
             return response()->json([

@@ -37,7 +37,8 @@ class SendWebhookJob implements ShouldQueue
      */
     public function __construct(
         public Registration $registration,
-        public ?int $webhookConfigId = null
+        public ?int $webhookConfigId = null,
+        public string $event = 'registration.created'
     ) {}
 
     /**
@@ -71,9 +72,10 @@ class SendWebhookJob implements ShouldQueue
 
         // 2. Build JSON payload
         $payload = [
-            'event' => 'registration.created',
+            'event' => $this->event,
             'timestamp' => now()->toIso8601String(),
             'registration_id' => $registration->id,
+            'status' => $registration->status,
             'workshop_id' => $registration->workshop_id,
             'workshop_title' => $registration->workshop->title ?? 'N/A',
             'full_name' => $registration->full_name,
@@ -89,9 +91,10 @@ class SendWebhookJob implements ShouldQueue
 
         // 3. For each config, send HTTP POST
         foreach ($configs as $config) {
-            // DUPLICATE PREVENTION: Check if this registration was already successfully sent to this config
+            // DUPLICATE PREVENTION: Check if this registration was already successfully sent to this config for THIS event
             $alreadySent = WebhookLog::where('registration_id', $registration->id)
                 ->where('webhook_config_id', $config->id)
+                ->where('payload', 'like', "%\"event\":\"{$this->event}\"%")
                 ->whereIn('response_status', [200, 201, 202])
                 ->exists();
 
@@ -103,7 +106,7 @@ class SendWebhookJob implements ShouldQueue
                 $response = Http::withHeaders([
                     'Content-Type' => 'application/json',
                     'X-Webhook-Secret' => $config->secret_token,
-                    'X-Event' => 'registration.created',
+                    'X-Event' => $this->event,
                 ])->post($config->url, $payload);
 
                 // 4. Log the result in webhook_logs table

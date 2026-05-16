@@ -4,8 +4,8 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
-use Illuminate\Console\Command;
-
+class RetryFailedWebhooks extends Command
+{
     /**
      * The name and signature of the console command.
      *

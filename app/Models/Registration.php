@@ -19,6 +19,8 @@ class Registration extends Model
         'address',
         'organization',
         'qr_code_token',
+        'status',
+        'approved_at',
         'qr_code_path',
         'webhook_sent_at',
         'checked_in_at',
@@ -28,6 +30,7 @@ class Registration extends Model
     protected $casts = [
         'webhook_sent_at' => 'datetime',
         'checked_in_at' => 'datetime',
+        'approved_at' => 'datetime',
     ];
 
     /**

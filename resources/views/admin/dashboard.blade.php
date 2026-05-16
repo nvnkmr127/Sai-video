@@ -12,7 +12,31 @@
             <div class="stat-label">Total Registrations</div>
             <div class="stat-value">{{ number_format($stats['total']) }}</div>
             <div class="mt-3 small text-muted">
-                <span class="text-success fw-bold"><i class="bi bi-arrow-up-short"></i> Active</span> event engagement
+                Combined event entries
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <div class="stat-label">Waiting List</div>
+            <div class="stat-value">{{ number_format($stats['waiting_approval']) }}</div>
+            <div class="mt-3 small text-muted">
+                Awaiting admin review
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(6, 182, 212, 0.1); color: #06b6d4;">
+                <i class="bi bi-patch-check"></i>
+            </div>
+            <div class="stat-label">Approved</div>
+            <div class="stat-value">{{ number_format($stats['approved']) }}</div>
+            <div class="mt-3 small text-muted">
+                QR Codes generated
             </div>
         </div>
     </div>
@@ -24,31 +48,7 @@
             <div class="stat-label">Checked In</div>
             <div class="stat-value">{{ number_format($stats['checked_in']) }}</div>
             <div class="mt-3 small text-muted">
-                {{ $stats['total'] > 0 ? round(($stats['checked_in'] / $stats['total']) * 100) : 0 }}% completion rate
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
-                <i class="bi bi-person-dash-fill"></i>
-            </div>
-            <div class="stat-label">Pending Check-in</div>
-            <div class="stat-value">{{ number_format($stats['pending']) }}</div>
-            <div class="mt-3 small text-muted">
-                Awaiting desk verification
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(6, 182, 212, 0.1); color: #06b6d4;">
-                <i class="bi bi-broadcast-pin"></i>
-            </div>
-            <div class="stat-label">Webhooks Sent</div>
-            <div class="stat-value">{{ number_format($stats['webhooks_sent']) }}</div>
-            <div class="mt-3 small text-muted">
-                Real-time data synced
+                Verified at the desk
             </div>
         </div>
     </div>
@@ -107,10 +107,14 @@
                                 </td>
                                 <td>{{ $reg->workshop->title ?? 'N/A' }}</td>
                                 <td>
-                                    @if($reg->checked_in_at)
-                                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3">Checked In</span>
+                                    @if($reg->status === 'approved')
+                                        @if($reg->checked_in_at)
+                                            <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3">Checked In</span>
+                                        @else
+                                            <span class="badge bg-info bg-opacity-10 text-info rounded-pill px-3">Approved</span>
+                                        @endif
                                     @else
-                                        <span class="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3">Pending</span>
+                                        <span class="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3">Waiting List</span>
                                     @endif
                                 </td>
                                 <td class="small text-muted">{{ $reg->created_at->format('M d, H:i') }}</td>

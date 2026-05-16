@@ -42,21 +42,33 @@
                     <div class="attendee-name h3 fw-bold">{{ $registration->full_name }}</div>
                 </div>
 
-                <div class="qr-zone mb-4">
-                    <div class="qr-wrapper">
-                        @if($registration->qr_code_path)
-                            <img src="/storage/{{ $registration->qr_code_path }}" alt="QR Code" id="qr-image">
-                        @else
-                            <img id="qr-image" style="display: none; width: 200px; height: 200px;" alt="QR Code">
-                            <div class="qr-loading" id="qr-spinner">
-                                <div class="spinner-border text-primary mb-2"></div>
-                                <div>GENERATING YOUR QR CODE...</div>
-                            </div>
-                        @endif
+                @if($registration->status === 'approved')
+                    <div class="qr-zone mb-4">
+                        <div class="qr-wrapper">
+                            @if($registration->qr_code_path)
+                                <img src="/storage/{{ $registration->qr_code_path }}" alt="QR Code" id="qr-image">
+                            @else
+                                <img id="qr-image" style="display: none; width: 200px; height: 200px;" alt="QR Code">
+                                <div class="qr-loading" id="qr-spinner">
+                                    <div class="spinner-border text-primary mb-2"></div>
+                                    <div>GENERATING YOUR QR CODE...</div>
+                                </div>
+                            @endif
+                        </div>
+                        <div id="qr-actions" style="display: {{ $registration->qr_code_path ? 'block' : 'none' }};"></div>
                     </div>
-                    <!-- This container can be used for actions that appear when QR is ready -->
-                    <div id="qr-actions" style="display: {{ $registration->qr_code_path ? 'block' : 'none' }};"></div>
-                </div>
+                @else
+                    <div class="status-zone py-5 mb-4">
+                        <div class="icon-box mb-3">
+                            <i class="bi bi-hourglass-split text-warning fs-1"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark">Registration Pending</h4>
+                        <p class="text-muted small px-4">Your registration is in our waiting list. Our team will verify your details and notify you once approved.</p>
+                        <div class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2 rounded-pill">
+                            <i class="bi bi-clock-fill me-1"></i> WAITING FOR APPROVAL
+                        </div>
+                    </div>
+                @endif
 
                 <div class="token-zone">
                     <div class="token-label">Access Token</div>

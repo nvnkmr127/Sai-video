@@ -14,10 +14,10 @@ class AdminController extends Controller
     public function dashboard()
     {
         $stats = [
-            'total'         => Registration::count(),
-            'checked_in'    => Registration::whereNotNull('checked_in_at')->count(),
-            'pending'       => Registration::whereNull('checked_in_at')->count(),
-            'webhooks_sent' => Registration::whereNotNull('webhook_sent_at')->count(),
+            'total'            => Registration::count(),
+            'waiting_approval' => Registration::where('status', 'pending')->count(),
+            'approved'         => Registration::where('status', 'approved')->count(),
+            'checked_in'       => Registration::whereNotNull('checked_in_at')->count(),
         ];
 
         $workshopCapacity = Workshop::withCount([
@@ -66,8 +66,10 @@ class AdminController extends Controller
         if ($request->filled('status')) {
             if ($request->status === 'checked_in') {
                 $query->whereNotNull('checked_in_at');
-            } elseif ($request->status === 'pending') {
-                $query->whereNull('checked_in_at');
+            } elseif ($request->status === 'approved') {
+                $query->where('status', 'approved')->whereNull('checked_in_at');
+            } elseif ($request->status === 'waiting') {
+                $query->where('status', 'pending');
             }
         }
 
@@ -75,7 +77,8 @@ class AdminController extends Controller
         $scopedStats = [
             'total'      => (clone $query)->count(),
             'checked_in' => (clone $query)->whereNotNull('checked_in_at')->count(),
-            'pending'    => (clone $query)->whereNull('checked_in_at')->count(),
+            'approved'   => (clone $query)->where('status', 'approved')->whereNull('checked_in_at')->count(),
+            'waiting'    => (clone $query)->where('status', 'pending')->count(),
         ];
 
         $registrations = $query->latest()->paginate(25)->withQueryString();
@@ -101,8 +104,10 @@ class AdminController extends Controller
         if ($request->filled('status')) {
             if ($request->status === 'checked_in') {
                 $query->whereNotNull('checked_in_at');
-            } elseif ($request->status === 'pending') {
-                $query->whereNull('checked_in_at');
+            } elseif ($request->status === 'approved') {
+                $query->where('status', 'approved')->whereNull('checked_in_at');
+            } elseif ($request->status === 'waiting') {
+                $query->where('status', 'pending');
             }
         }
 
@@ -231,6 +236,41 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             Log::error("Admin QR check-in error: " . $e->getMessage());
             return back()->with('error', 'Check-in failed. Please try again.');
+        }
+    }
+
+    /**
+     * Approve a registration from the waiting list.
+     */
+    public function approve($id)
+    {
+        try {
+            return DB::transaction(function () use ($id) {
+                $registration = Registration::lockForUpdate()->findOrFail($id);
+
+                if ($registration->status === 'approved') {
+                    return back()->with('info', 'Attendee is already approved.');
+                }
+
+                $registration->update([
+                    'status' => 'approved',
+                    'approved_at' => now(),
+                ]);
+
+                // Dispatch the pipeline only on approval
+                if (app()->isLocal()) {
+                    \App\Jobs\RegistrationCreated::dispatchSync($registration);
+                } else {
+                    \App\Jobs\RegistrationCreated::dispatch($registration);
+                }
+
+                Log::info("Registration approved by admin: {$registration->full_name} (#{$id})");
+
+                return back()->with('success', "{$registration->full_name} has been approved and the QR code has been generated.");
+            });
+        } catch (\Exception $e) {
+            Log::error("Approval failed for ID {$id}: " . $e->getMessage());
+            return back()->with('error', 'An error occurred during approval.');
         }
     }
 }

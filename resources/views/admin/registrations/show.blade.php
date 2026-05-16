@@ -30,10 +30,14 @@
                     </div>
                 </div>
                 <div id="statusBadge">
-                    @if($registration->checked_in_at)
-                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-4 py-2 fs-6">Checked In</span>
+                    @if($registration->status === 'approved')
+                        @if($registration->checked_in_at)
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-4 py-2 fs-6">Checked In</span>
+                        @else
+                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-4 py-2 fs-6">Approved</span>
+                        @endif
                     @else
-                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-4 py-2 fs-6">Pending Entry</span>
+                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-4 py-2 fs-6">Waiting List</span>
                     @endif
                 </div>
             </div>
@@ -60,7 +64,20 @@
                 <div class="col-12 border-top border-secondary border-opacity-25 pt-5 mt-5">
                     <label class="nav-label mb-4 d-block">Check-in Verification</label>
                     <div id="checkInData">
-                        @if($registration->checked_in_at)
+                        @if($registration->status === 'pending')
+                            <div class="p-4 rounded-4 bg-warning bg-opacity-5 border border-warning border-opacity-10 mb-3">
+                                <div class="text-warning fw-bold d-flex align-items-center gap-2 mb-2">
+                                    <i class="bi bi-shield-lock"></i> Pending Verification
+                                </div>
+                                <p class="small text-muted mb-3">This attendee is currently in the waiting list. You must approve them before they can receive their QR code and check in.</p>
+                                <form method="POST" action="{{ route('admin.registrations.approve', $registration->id) }}">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success px-4">
+                                        <i class="bi bi-check-lg me-2"></i> Approve Registration
+                                    </button>
+                                </form>
+                            </div>
+                        @elseif($registration->checked_in_at)
                             <div class="p-4 rounded-4 bg-success bg-opacity-5 border border-success border-opacity-10">
                                 <div class="text-success fw-bold d-flex align-items-center gap-2 mb-1">
                                     <i class="bi bi-patch-check-fill"></i> Successfully Verified
