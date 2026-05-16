@@ -32,7 +32,16 @@
                     <option value="registration" {{ old('type', $config->type) == 'registration' ? 'selected' : '' }}>Registration Webhook (JSON payload)</option>
                     <option value="otp" {{ old('type', $config->type) == 'otp' ? 'selected' : '' }}>OTP Webhook (SMS/WhatsApp Provider)</option>
                 </select>
-                <div class="form-text">Choose 'OTP' for sending verification codes via third-party providers.</div>
+                <div class="form-text mt-2">
+                    <div class="d-flex gap-2 align-items-center mb-1">
+                        <span class="badge bg-primary-subtle text-primary small">Registration</span>
+                        <span class="small text-muted">Sends <code>registration.pending</code> (on signup) and <code>registration.approved</code> (on approval).</span>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="badge bg-info-subtle text-info small">OTP</span>
+                        <span class="small text-muted">Sends <code>test.ping</code> or <code>otp.send</code> for phone verification.</span>
+                    </div>
+                </div>
                 @error('type')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
