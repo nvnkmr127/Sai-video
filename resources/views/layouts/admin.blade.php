@@ -12,13 +12,13 @@
     <style>
         :root {
             --sidebar-width: 280px;
-            --bg-main: #0f172a;
-            --bg-sidebar: #1e293b;
+            --bg-main: #f8fafc;
+            --bg-sidebar: #ffffff;
             --primary: #6366f1;
-            --primary-glow: rgba(99, 102, 241, 0.3);
-            --border: rgba(255, 255, 255, 0.08);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --primary-glow: rgba(99, 102, 241, 0.1);
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
         }
 
         body {
@@ -48,7 +48,7 @@
             font-weight: 800;
             font-size: 1.5rem;
             letter-spacing: -1px;
-            color: white;
+            color: var(--text-main);
             display: flex;
             align-items: center;
             gap: 0.75rem;
@@ -80,8 +80,8 @@
             margin-bottom: 0.25rem;
         }
         .nav-link:hover {
-            color: white;
-            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            background: #f1f5f9;
         }
         .nav-link.active {
             color: white;
@@ -108,14 +108,16 @@
             display: flex;
             align-items: center;
             gap: 1rem;
-            background: rgba(255, 255, 255, 0.03);
+            background: white;
             padding: 0.5rem 1rem;
             border-radius: 1rem;
             border: 1px solid var(--border);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
         .avatar {
             width: 35px; height: 35px;
             background: linear-gradient(135deg, var(--primary), #06b6d4);
+            color: white;
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-weight: 700; font-size: 0.9rem;
@@ -123,14 +125,15 @@
 
         /* Dashboard Cards */
         .stat-card {
-            background: var(--bg-sidebar);
+            background: white;
             border: 1px solid var(--border);
             border-radius: 1.5rem;
             padding: 2rem;
             transition: all 0.3s;
             height: 100%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
-        .stat-card:hover { transform: translateY(-5px); border-color: var(--primary); }
+        .stat-card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
         .stat-icon {
             width: 50px; height: 50px;
             background: rgba(99, 102, 241, 0.1);
@@ -140,19 +143,19 @@
             font-size: 1.5rem; margin-bottom: 1.5rem;
         }
         .stat-label { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; }
-        .stat-value { font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 700; }
+        .stat-value { font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 700; color: var(--text-main); }
 
         /* Tables and Lists */
         .content-card {
-            background: var(--bg-sidebar);
+            background: white;
             border: 1px solid var(--border);
             border-radius: 1.5rem;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        .table { --bs-table-bg: transparent; --bs-table-color: white; margin-bottom: 0; }
+        .table { --bs-table-bg: transparent; --bs-table-color: var(--text-main); margin-bottom: 0; }
         .table thead th {
-            background: rgba(0,0,0,0.2);
+            background: #f8fafc;
             color: var(--text-muted);
             font-weight: 600;
             text-transform: uppercase;
@@ -165,10 +168,10 @@
         .table tr:last-child td { border-bottom: none; }
 
         .btn-primary {
-            background: var(--primary); border: none; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 600;
+            background: var(--primary); border: none; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 600; color: white;
             box-shadow: 0 4px 15px var(--primary-glow);
         }
-        .btn-primary:hover { background: #4f46e5; transform: translateY(-2px); }
+        .btn-primary:hover { background: #4f46e5; transform: translateY(-2px); color: white; }
 
         .badge-pill { padding: 0.4rem 1rem; border-radius: 2rem; font-size: 0.75rem; font-weight: 700; }
 
