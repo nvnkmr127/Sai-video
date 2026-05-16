@@ -17,47 +17,49 @@
 
         <div class="content-wrapper">
             <div class="glass-card">
-                <!-- Success Header -->
+                <!-- Success Header (Tightened) -->
                 <div class="success-header">
                     <div class="success-icon-wrap">
                         <div class="pulse-circle"></div>
                         <i class="bi bi-check-lg"></i>
                     </div>
-                    <h1 class="gradient-text">Registration Success!</h1>
-                    <p class="status-msg text-muted">Your entry pass is ready for the workshop</p>
+                    <h1 class="gradient-text">Registered!</h1>
+                    <p class="status-msg text-muted">Your digital pass is ready</p>
                 </div>
 
-                <!-- Pass Design -->
+                <!-- Pass Design (Enhanced & Larger) -->
                 <div class="pass-container">
                     <div class="pass-top">
-                        <div class="workshop-meta mb-4">
+                        <div class="workshop-meta">
                             <span class="category-tag">OFFICIAL ENTRY PASS</span>
                             <h2 class="pass-workshop-title">{{ $registration->workshop->title }}</h2>
                         </div>
 
                         <div class="pass-qr-section top-qr">
                             @if($registration->status === 'approved')
-                                <div class="qr-container">
-                                    @if($registration->qr_code_path)
-                                        <img src="/storage/{{ $registration->qr_code_path }}" alt="Pass QR" id="qr-image" class="qr-img">
-                                    @else
-                                        <div class="qr-placeholder" id="qr-spinner">
-                                            <div class="spinner-custom"></div>
-                                            <span>GENERATING...</span>
-                                        </div>
-                                        <img id="qr-image" class="qr-img" style="display: none;">
-                                    @endif
+                                <div class="qr-glow-wrap">
+                                    <div class="qr-container">
+                                        @if($registration->qr_code_path)
+                                            <img src="/storage/{{ $registration->qr_code_path }}" alt="Pass QR" id="qr-image" class="qr-img">
+                                        @else
+                                            <div class="qr-placeholder" id="qr-spinner">
+                                                <div class="spinner-custom"></div>
+                                                <span>GENERATING...</span>
+                                            </div>
+                                            <img id="qr-image" class="qr-img" style="display: none;">
+                                        @endif
+                                    </div>
                                 </div>
                                 <div class="token-display">
-                                    <span class="token-label">PASS IDENTIFIER</span>
+                                    <span class="token-label">PASS ID</span>
                                     <span class="token-code">{{ $registration->qr_code_token }}</span>
                                 </div>
                             @else
-                                <div class="pending-status py-2">
+                                <div class="pending-status">
                                     <div class="pending-icon small">
                                         <i class="bi bi-clock-history"></i>
                                     </div>
-                                    <div class="pending-badge mt-2">WAITING LIST</div>
+                                    <div class="pending-badge mt-2">WAITING FOR APPROVAL</div>
                                 </div>
                             @endif
                         </div>
@@ -71,9 +73,9 @@
 
                     <div class="pass-bottom">
                         @if($registration->status !== 'approved')
-                            <div class="pending-info text-center mb-4">
+                            <div class="pending-info text-center">
                                 <h3 class="h6 fw-bold mb-1">Verification Pending</h3>
-                                <p class="x-small text-muted mb-0">Our team is reviewing your registration.</p>
+                                <p class="x-small text-muted mb-0">Our team is reviewing your details.</p>
                             </div>
                         @endif
 
@@ -83,12 +85,12 @@
                                     <label>ATTENDEE</label>
                                     <span class="detail-value">{{ $registration->full_name }}</span>
                                 </div>
+                                <div class="detail-group text-end">
+                                    <label>DATE</label>
+                                    <span class="detail-value">{{ $registration->workshop->date->format('M d, Y') }}</span>
+                                </div>
                             </div>
                             <div class="detail-row mt-3">
-                                <div class="detail-group">
-                                    <label>DATE</label>
-                                    <span class="detail-value text-nowrap">{{ $registration->workshop->date->format('M d, Y') }}</span>
-                                </div>
                                 <div class="detail-group">
                                     <label>LOCATION</label>
                                     <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($registration->workshop->location) }}" target="_blank" class="detail-value location-link">
@@ -103,7 +105,7 @@
                 <!-- Action Buttons -->
                 <div class="pass-actions">
                     <button onclick="window.print()" class="btn-action secondary">
-                        <i class="bi bi-printer me-2"></i> Print or Save Pass
+                        <i class="bi bi-printer me-2"></i> Print / Save Pass
                     </button>
                 </div>
             </div>
@@ -111,13 +113,13 @@
     </div>
 
     <style>
-        /* Premium Glassmorphism Theme */
+        /* Premium Glassmorphism Theme - Enhanced for Large QR */
         .success-page {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 4rem 1.5rem;
+            padding: 2rem 1.5rem;
         }
 
         .dynamic-bg {
@@ -146,7 +148,7 @@
 
         .content-wrapper {
             width: 100%;
-            max-width: 480px;
+            max-width: 580px; /* Widened to fit larger QR */
             z-index: 1;
         }
 
@@ -156,7 +158,7 @@
             -webkit-backdrop-filter: blur(40px) saturate(180%);
             border: 1px solid rgba(255, 255, 255, 0.4);
             border-radius: 3rem;
-            padding: 3.5rem 2.5rem;
+            padding: 2.5rem 2rem; /* Reduced padding to remove empty space */
             box-shadow: 0 40px 100px rgba(0, 0, 0, 0.15);
             animation: cardAppear 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
             text-align: center;
@@ -167,19 +169,23 @@
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
+        .success-header {
+            margin-bottom: 2rem;
+        }
+
         .success-icon-wrap {
             position: relative;
-            width: 90px;
-            height: 90px;
-            margin: 0 auto 2rem;
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 1rem;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #000;
             color: #fff;
             border-radius: 50%;
-            font-size: 3rem;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            font-size: 2.25rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         }
 
         .pulse-circle {
@@ -199,8 +205,8 @@
         .gradient-text {
             font-family: 'Outfit', sans-serif;
             font-weight: 800;
-            font-size: 2.5rem;
-            margin-bottom: 0.75rem;
+            font-size: 2rem;
+            margin-bottom: 0.25rem;
             background: linear-gradient(135deg, #000 0%, #555 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -208,10 +214,9 @@
         }
 
         .status-msg {
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 500;
-            margin-bottom: 3rem;
-            opacity: 0.8;
+            opacity: 0.7;
         }
 
         /* Pass Styling */
@@ -220,33 +225,95 @@
             border-radius: 2rem;
             overflow: hidden;
             box-shadow: 0 15px 45px rgba(0,0,0,0.06);
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
             border: 1px solid rgba(0,0,0,0.03);
         }
 
         .pass-top {
-            padding: 2.5rem 2rem;
+            padding: 2rem;
             background: #fdfdfd;
-            border-bottom: 1px solid #f8f8f8;
         }
 
         .category-tag {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 800;
-            letter-spacing: 3px;
-            color: #a0a0a0;
+            letter-spacing: 2.5px;
+            color: #aaa;
             display: block;
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.5rem;
         }
 
         .pass-workshop-title {
             font-family: 'Outfit', sans-serif;
-            font-size: 1.4rem;
+            font-size: 1.35rem;
             font-weight: 700;
             color: #000;
-            margin: 0;
+            margin: 0 0 1.5rem 0;
             line-height: 1.2;
         }
+
+        .qr-glow-wrap {
+            position: relative;
+            display: inline-block;
+            margin: 0 auto;
+        }
+
+        .qr-glow-wrap::after {
+            content: '';
+            position: absolute;
+            inset: -10px;
+            background: radial-gradient(circle, rgba(0,0,0,0.03) 0%, transparent 70%);
+            z-index: -1;
+        }
+
+        .qr-container {
+            width: 440px; /* Massive QR */
+            height: 440px;
+            margin: 0 auto 1.5rem;
+            padding: 1rem;
+            border: 1px solid #f0f0f0;
+            border-radius: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+        }
+
+        .qr-img { width: 100%; height: 100%; object-fit: contain; }
+
+        .qr-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: #ddd;
+        }
+
+        .spinner-custom {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f5f5f5;
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .token-display {
+            background: #f8f8f8;
+            padding: 0.75rem 1.5rem;
+            border-radius: 1rem;
+            display: inline-flex;
+            flex-direction: column;
+            border: 1px solid #f0f0f0;
+        }
+
+        .token-label { font-size: 0.6rem; font-weight: 800; color: #bbb; margin-bottom: 0.15rem; letter-spacing: 1px; }
+        .token-code { font-family: 'Monaco', 'Consolas', monospace; font-size: 0.95rem; font-weight: 700; color: #000; letter-spacing: 1px; }
 
         .pass-divider {
             height: 40px;
@@ -258,27 +325,28 @@
 
         .pass-line {
             flex-grow: 1;
-            border-top: 2px dashed #eee;
+            border-top: 2px dashed #f0f0f0;
             margin: 0 1.5rem;
         }
 
         .cutout-left, .cutout-right {
-            width: 34px;
-            height: 34px;
-            background: #e9ecef; /* Slightly darker to show depth in glass */
+            width: 30px;
+            height: 30px;
+            background: #e9ecef;
             border-radius: 50%;
             position: absolute;
         }
-        .cutout-left { left: -17px; box-shadow: inset -5px 0 10px rgba(0,0,0,0.03); }
-        .cutout-right { right: -17px; box-shadow: inset 5px 0 10px rgba(0,0,0,0.03); }
+        .cutout-left { left: -15px; box-shadow: inset -5px 0 8px rgba(0,0,0,0.02); }
+        .cutout-right { right: -15px; box-shadow: inset 5px 0 8px rgba(0,0,0,0.02); }
 
         .pass-bottom {
-            padding: 2.5rem 2rem;
+            padding: 1.5rem 2rem;
+            background: #fff;
         }
 
         .detail-row {
             display: flex;
-            gap: 1.5rem;
+            justify-content: space-between;
             text-align: left;
         }
 
@@ -288,18 +356,18 @@
 
         .detail-group label {
             display: block;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 800;
-            color: #b0b0b0;
+            color: #ccc;
             letter-spacing: 1.5px;
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.25rem;
             text-transform: uppercase;
         }
 
         .detail-value {
-            font-weight: 600;
+            font-weight: 700;
             color: #222;
-            font-size: 1rem;
+            font-size: 0.95rem;
             display: block;
         }
 
@@ -314,84 +382,17 @@
         .location-link:hover {
             color: #555;
             text-decoration: underline;
-            transform: translateX(3px);
-        }
-
-        .pass-qr-section {
-            margin-top: 0;
-            padding-top: 0;
-            border-top: none;
         }
 
         .pass-qr-section.top-qr {
-            padding-bottom: 2.5rem;
-        }
-
-        .qr-container {
-            width: 420px;
-            height: 420px;
-            margin: 0 auto 1.5rem;
-            padding: 1.25rem;
-            border: 1px solid #eee;
-            border-radius: 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #fff;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.03);
-        }
-
-        .qr-img { width: 100%; height: 100%; object-fit: contain; }
-
-        .qr-placeholder {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-            font-size: 0.75rem;
-            font-weight: 800;
-            color: #ccc;
-            letter-spacing: 1px;
-        }
-
-        .spinner-custom {
-            width: 32px;
-            height: 32px;
-            border: 3px solid #f0f0f0;
-            border-top-color: #000;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .token-display {
-            background: #f9f9f9;
-            padding: 1rem;
-            border-radius: 1.25rem;
-            display: inline-flex;
-            flex-direction: column;
-            min-width: 160px;
-            border: 1px solid #f0f0f0;
-        }
-
-        .token-label { font-size: 0.65rem; font-weight: 800; color: #aaa; margin-bottom: 0.25rem; letter-spacing: 1px; }
-        .token-code { font-family: 'Monaco', 'Consolas', monospace; font-size: 0.9rem; font-weight: 700; color: #000; }
-
-        .pending-status .pending-icon {
-            font-size: 3.5rem;
-            color: #f59e0b;
-            margin-bottom: 1.25rem;
-            animation: float 3s ease-in-out infinite;
+            padding-bottom: 0.5rem;
         }
 
         .pending-status .pending-icon.small {
-            font-size: 2.5rem;
+            font-size: 3rem;
+            color: #f59e0b;
             margin-bottom: 0.5rem;
-        }
-
-        .pending-info .x-small {
-            font-size: 0.75rem;
+            animation: float 3s ease-in-out infinite;
         }
 
         @keyframes float {
@@ -404,64 +405,52 @@
             background: #fffbeb;
             color: #b45309;
             border: 1px solid #fde68a;
-            padding: 0.6rem 1.5rem;
+            padding: 0.5rem 1.5rem;
             border-radius: 2rem;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 800;
-            letter-spacing: 1px;
         }
 
         .btn-action {
             width: 100%;
-            padding: 1.25rem;
+            padding: 1.15rem;
             border-radius: 1.5rem;
             font-weight: 700;
             font-size: 1rem;
             border: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #000;
             color: #fff;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
         }
 
         .btn-action:hover {
             background: #222;
-            transform: translateY(-3px);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+            transform: translateY(-2px);
         }
 
-        .btn-action:active { transform: translateY(-1px); }
-
-        @media (max-width: 480px) {
-            .success-page { padding: 2rem 1rem; }
-            .glass-card { padding: 2rem 1.25rem; border-radius: 2.5rem; }
-            .gradient-text { font-size: 1.85rem; }
-            .status-msg { margin-bottom: 2rem; font-size: 0.9rem; }
-            .pass-top, .pass-bottom { padding: 1.5rem 1.25rem; }
-            .pass-workshop-title { font-size: 1.2rem; }
+        @media (max-width: 600px) {
+            .glass-card { padding: 1.5rem; border-radius: 2rem; }
+            .qr-container { width: 100%; height: auto; aspect-ratio: 1/1; }
             .detail-row { flex-direction: column; gap: 1rem; }
-            .qr-container { width: 180px; height: 180px; padding: 1rem; }
-            .token-display { min-width: 130px; padding: 0.75rem; }
-            .success-icon-wrap { width: 70px; height: 70px; font-size: 2.5rem; }
+            .detail-group.text-end { text-align: left !important; }
         }
 
         @media print {
             .dynamic-bg, .success-header, .pass-actions { display: none; }
-            body { background: white; }
-            .success-page { padding: 0; }
+            body { background: white; padding: 0; }
+            .success-page { display: block; padding: 0; }
             .glass-card { background: none; box-shadow: none; border: none; padding: 0; }
-            .pass-container { border: 1px solid #ddd; border-radius: 1rem; box-shadow: none; }
-            .cutout-left, .cutout-right { background: white; border: 1px solid #ddd; }
+            .pass-container { border: 1px solid #eee; width: 100%; max-width: 500px; margin: 0 auto; }
         }
     </style>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Background Layer Rotation
         const layers = document.querySelectorAll('.bg-layer');
         if (layers.length > 1) {
             let current = 0;
@@ -472,14 +461,10 @@
             }, 6000);
         }
 
-        // QR Code Generation Polling
         @if($registration->status === 'approved' && !$registration->qr_code_path)
         const pollForQr = () => {
             fetch('/qr-status/{{ $registration->qr_code_token }}')
-                .then(res => {
-                    if (!res.ok) throw new Error();
-                    return res.json();
-                })
+                .then(res => res.json())
                 .then(data => {
                     if (data.ready) {
                         const spinner = document.getElementById('qr-spinner');
