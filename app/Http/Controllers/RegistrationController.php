@@ -311,6 +311,17 @@ class RegistrationController extends Controller
                     ], 404);
                 }
 
+                // Check if Approved
+                if ($registration->status !== 'approved') {
+                    Log::warning("Check-in attempt for unapproved registration: {$registration->full_name} (#{$registration->id})");
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Registration Not Approved',
+                        'code'    => 'NOT_APPROVED',
+                        'attendee' => $registration->full_name,
+                    ], 403);
+                }
+
                 // Already Checked In
                 if ($registration->checked_in_at) {
                     Log::info("Duplicate check-in attempt for: {$registration->full_name} (#{$registration->id})");

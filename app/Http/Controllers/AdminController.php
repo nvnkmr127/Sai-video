@@ -162,6 +162,13 @@ class AdminController extends Controller
             return DB::transaction(function () use ($id) {
                 $registration = Registration::lockForUpdate()->findOrFail($id);
 
+                if ($registration->status !== 'approved') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Attendee is not approved yet. Please approve them first.',
+                    ], 403);
+                }
+
                 if ($registration->checked_in_at) {
                     return response()->json([
                         'success' => false,
@@ -222,6 +229,10 @@ class AdminController extends Controller
         try {
             return DB::transaction(function () use ($uuid) {
                 $registration = Registration::where('qr_code_token', $uuid)->lockForUpdate()->firstOrFail();
+
+                if ($registration->status !== 'approved') {
+                    return back()->with('error', 'This registration is still on the Waiting List and has not been approved yet.');
+                }
 
                 if ($registration->checked_in_at) {
                     return back()->with('error', 'Attendee already checked in at ' . $registration->checked_in_at->format('M d, Y H:i'));

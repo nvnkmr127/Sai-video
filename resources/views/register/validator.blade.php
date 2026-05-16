@@ -99,7 +99,11 @@
         </div>
 
         <div class="mt-4 d-grid gap-2">
-
+            <div class="input-group">
+                <input type="text" id="manualToken" class="form-control bg-dark text-white border-secondary" placeholder="Enter token manually...">
+                <button class="btn btn-primary" type="button" id="submitManual">Verify</button>
+            </div>
+        </div>
         <div class="text-center mt-5">
             <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()">Reset Page</button>
         </div>
