@@ -106,7 +106,11 @@ class RegistrationController extends Controller
         Log::info("New registration: {$registration->full_name} for workshop: {$workshop->title}");
 
         // Dispatch the pipeline: GenerateQR → SendWebhook
-        RegistrationCreated::dispatch($registration);
+        if (app()->isLocal()) {
+            RegistrationCreated::dispatchSync($registration);
+        } else {
+            RegistrationCreated::dispatch($registration);
+        }
 
         return redirect()->route('registration.success', $registration->qr_code_token);
     }

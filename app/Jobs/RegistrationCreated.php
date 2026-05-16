@@ -26,6 +26,10 @@ class RegistrationCreated implements ShouldQueue
      */
     public function handle(): void
     {
-        GenerateAndSendQrCode::dispatch($this->registration);
+        if (app()->isLocal()) {
+            GenerateAndSendQrCode::dispatchSync($this->registration);
+        } else {
+            GenerateAndSendQrCode::dispatch($this->registration);
+        }
     }
 }

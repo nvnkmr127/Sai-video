@@ -41,7 +41,11 @@ class GenerateAndSendQrCode implements ShouldQueue
         // Skip if QR already generated (idempotency guard)
         if ($this->registration->qr_code_path && Storage::disk('public')->exists($this->registration->qr_code_path)) {
             Log::info("QR already exists for registration #{$this->registration->id}, dispatching webhook only.");
-            SendWebhookJob::dispatch($this->registration);
+            if (app()->isLocal()) {
+                SendWebhookJob::dispatchSync($this->registration);
+            } else {
+                SendWebhookJob::dispatch($this->registration);
+            }
             return;
         }
 
@@ -72,7 +76,11 @@ class GenerateAndSendQrCode implements ShouldQueue
         Log::info("QR Code generated for registration #{$this->registration->id}: {$filePath}");
 
         // 5. Dispatch the Webhook Job
-        SendWebhookJob::dispatch($this->registration);
+        if (app()->isLocal()) {
+            SendWebhookJob::dispatchSync($this->registration);
+        } else {
+            SendWebhookJob::dispatch($this->registration);
+        }
     }
 
     /**
