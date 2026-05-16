@@ -30,39 +30,12 @@
             <!-- Pass Design -->
             <div class="pass-container">
                 <div class="pass-top">
-                    <div class="workshop-meta">
+                    <div class="workshop-meta mb-4">
                         <span class="category-tag">OFFICIAL ENTRY PASS</span>
                         <h2 class="pass-workshop-title">{{ $registration->workshop->title }}</h2>
                     </div>
-                </div>
 
-                <div class="pass-divider">
-                    <div class="cutout-left"></div>
-                    <div class="pass-line"></div>
-                    <div class="cutout-right"></div>
-                </div>
-
-                <div class="pass-bottom">
-                    <div class="attendee-details">
-                        <div class="detail-row">
-                            <div class="detail-group">
-                                <label>ATTENDEE</label>
-                                <span class="detail-value">{{ $registration->full_name }}</span>
-                            </div>
-                        </div>
-                        <div class="detail-row mt-3">
-                            <div class="detail-group">
-                                <label>DATE</label>
-                                <span class="detail-value">{{ $registration->workshop->date->format('M d, Y') }}</span>
-                            </div>
-                            <div class="detail-group">
-                                <label>LOCATION</label>
-                                <span class="detail-value">{{ $registration->workshop->location }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="pass-qr-section">
+                    <div class="pass-qr-section top-qr">
                         @if($registration->status === 'approved')
                             <div class="qr-container">
                                 @if($registration->qr_code_path)
@@ -80,15 +53,47 @@
                                 <span class="token-code">{{ $registration->qr_code_token }}</span>
                             </div>
                         @else
-                            <div class="pending-status py-4">
-                                <div class="pending-icon">
+                            <div class="pending-status py-2">
+                                <div class="pending-icon small">
                                     <i class="bi bi-clock-history"></i>
                                 </div>
-                                <h3 class="h5 fw-bold mb-2">Verification Pending</h3>
-                                <p class="small text-muted mb-3">Our team is reviewing your registration. You will receive your digital pass once approved.</p>
-                                <div class="pending-badge">WAITING LIST</div>
+                                <div class="pending-badge mt-2">WAITING LIST</div>
                             </div>
                         @endif
+                    </div>
+                </div>
+
+                <div class="pass-divider">
+                    <div class="cutout-left"></div>
+                    <div class="pass-line"></div>
+                    <div class="cutout-right"></div>
+                </div>
+
+                <div class="pass-bottom">
+                    @if($registration->status !== 'approved')
+                        <div class="pending-info text-center mb-4">
+                            <h3 class="h6 fw-bold mb-1">Verification Pending</h3>
+                            <p class="x-small text-muted mb-0">Our team is reviewing your registration.</p>
+                        </div>
+                    @endif
+
+                    <div class="attendee-details">
+                        <div class="detail-row">
+                            <div class="detail-group">
+                                <label>ATTENDEE</label>
+                                <span class="detail-value">{{ $registration->full_name }}</span>
+                            </div>
+                        </div>
+                        <div class="detail-row mt-3">
+                            <div class="detail-group">
+                                <label>DATE</label>
+                                <span class="detail-value text-nowrap">{{ $registration->workshop->date->format('M d, Y') }}</span>
+                            </div>
+                            <div class="detail-group">
+                                <label>LOCATION</label>
+                                <span class="detail-value">{{ $registration->workshop->location }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -297,9 +302,13 @@
     }
 
     .pass-qr-section {
-        margin-top: 1.5rem;
-        padding-top: 2rem;
-        border-top: 1px solid #f5f5f5;
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+    }
+
+    .pass-qr-section.top-qr {
+        padding-bottom: 2.5rem;
     }
 
     .qr-container {
@@ -360,6 +369,15 @@
         animation: float 3s ease-in-out infinite;
     }
 
+    .pending-status .pending-icon.small {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .pending-info .x-small {
+        font-size: 0.75rem;
+    }
+
     @keyframes float {
         0%, 100% { transform: translateY(0); }
         50% { transform: translateY(-10px); }
@@ -403,10 +421,16 @@
     .btn-action:active { transform: translateY(-1px); }
 
     @media (max-width: 480px) {
-        .glass-card { padding: 2.5rem 1.5rem; border-radius: 2.5rem; }
-        .gradient-text { font-size: 2rem; }
+        .success-page { padding: 2rem 1rem; }
+        .glass-card { padding: 2rem 1.25rem; border-radius: 2.5rem; }
+        .gradient-text { font-size: 1.85rem; }
+        .status-msg { margin-bottom: 2rem; font-size: 0.9rem; }
+        .pass-top, .pass-bottom { padding: 1.5rem 1.25rem; }
+        .pass-workshop-title { font-size: 1.2rem; }
         .detail-row { flex-direction: column; gap: 1rem; }
-        .qr-container { width: 160px; height: 160px; }
+        .qr-container { width: 150px; height: 150px; padding: 1rem; }
+        .token-display { min-width: 130px; padding: 0.75rem; }
+        .success-icon-wrap { width: 70px; height: 70px; font-size: 2.5rem; }
     }
 
     @media print {
