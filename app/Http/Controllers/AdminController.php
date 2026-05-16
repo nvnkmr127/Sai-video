@@ -179,6 +179,9 @@ class AdminController extends Controller
 
                 Log::info("Manual check-in by admin for: {$registration->full_name} (#{$registration->id})");
 
+                // Notify external systems about the check-in
+                SendWebhookJob::dispatch($registration, null, 'registration.checked_in');
+
                 return response()->json([
                     'success'       => true,
                     'checked_in_at' => $registration->checked_in_at->format('M d, Y H:i'),
@@ -230,6 +233,9 @@ class AdminController extends Controller
                 ]);
 
                 Log::info("Admin QR check-in: {$registration->full_name} (#{$registration->id})");
+
+                // Notify external systems about the check-in
+                SendWebhookJob::dispatch($registration, null, 'registration.checked_in');
 
                 return back()->with('success', "{$registration->full_name} has been checked in successfully!");
             });

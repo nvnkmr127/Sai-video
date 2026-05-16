@@ -32,12 +32,13 @@
                     <option value="registration" {{ old('type', $config->type) == 'registration' ? 'selected' : '' }}>Registration: All Events</option>
                     <option value="registration_pending" {{ old('type', $config->type) == 'registration_pending' ? 'selected' : '' }}>Registration: Only Pending</option>
                     <option value="registration_approved" {{ old('type', $config->type) == 'registration_approved' ? 'selected' : '' }}>Registration: Only Approved</option>
+                    <option value="registration_checked_in" {{ old('type', $config->type) == 'registration_checked_in' ? 'selected' : '' }}>Registration: Only Checked-in</option>
                     <option value="otp" {{ old('type', $config->type) == 'otp' ? 'selected' : '' }}>OTP Webhook (SMS/WhatsApp Provider)</option>
                 </select>
                 <div class="form-text mt-2">
                     <div class="d-flex gap-2 align-items-center mb-1">
                         <span class="badge bg-primary-subtle text-primary small">Registration</span>
-                        <span class="small text-muted">Sends <code>registration.pending</code> (on signup) and <code>registration.approved</code> (on approval).</span>
+                        <span class="small text-muted">Sends <code>registration.pending</code>, <code>registration.approved</code>, and <code>registration.checked_in</code>.</span>
                     </div>
                     <div class="d-flex gap-2 align-items-center">
                         <span class="badge bg-info-subtle text-info small">OTP</span>

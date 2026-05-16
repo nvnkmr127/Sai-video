@@ -24,7 +24,7 @@ class WebhookConfigController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:registration,registration_pending,registration_approved,otp',
+            'type' => 'required|in:registration,registration_pending,registration_approved,registration_checked_in,otp',
             'url' => 'required|url',
             'secret_token' => 'required|string|max:255',
             'is_active' => 'boolean',
@@ -46,7 +46,7 @@ class WebhookConfigController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:registration,registration_pending,registration_approved,otp',
+            'type' => 'required|in:registration,registration_pending,registration_approved,registration_checked_in,otp',
             'url' => 'required|url',
             'secret_token' => 'required|string|max:255',
             'is_active' => 'boolean',
