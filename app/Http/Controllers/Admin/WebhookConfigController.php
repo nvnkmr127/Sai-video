@@ -62,18 +62,51 @@ class WebhookConfigController extends Controller
     public function test(WebhookConfig $webhook)
     {
         try {
-            $response = Http::withHeaders([
-                'X-Webhook-Secret' => $webhook->secret_token,
-                'X-Event' => 'test.ping'
-            ])->post($webhook->url, [
+            $payload = [
                 'event' => 'test.ping',
                 'timestamp' => now()->toIso8601String(),
-                'message' => 'This is a test notification from WorkshopPro.'
-            ]);
+                'message' => 'This is a test notification from WorkshopPro.',
+                'trace_id' => (string) \Illuminate\Support\Str::uuid()
+            ];
+
+            $event = 'test.ping';
+
+            if ($webhook->type === 'otp') {
+                $event = 'otp.send';
+                $payload = [
+                    'phone' => '+919876543210',
+                    'otp' => '123456',
+                    'message' => 'Your verification code is: 123456',
+                    'is_test' => true
+                ];
+            } elseif ($webhook->type === 'registration') {
+                $event = 'registration.created';
+                $payload = [
+                    'event' => 'registration.created',
+                    'timestamp' => now()->toIso8601String(),
+                    'registration_id' => 999,
+                    'workshop_id' => 1,
+                    'workshop_title' => 'Sample Workshop (Test)',
+                    'full_name' => 'John Doe',
+                    'phone' => '+919876543210',
+                    'address' => '123 Test St, Sector 4, Sample City',
+                    'organization' => 'Test Organization',
+                    'qr_code_token' => (string) \Illuminate\Support\Str::uuid(),
+                    'qr_code_image_base64' => 'base64_encoded_image_sample',
+                    'qr_code_image_url' => 'https://example.com/sample-qr.png',
+                    'is_test' => true
+                ];
+            }
+
+            $response = Http::withHeaders([
+                'X-Webhook-Secret' => $webhook->secret_token,
+                'X-Event' => $event
+            ])->post($webhook->url, $payload);
 
             return response()->json([
                 'status' => $response->status(),
-                'success' => $response->successful()
+                'success' => $response->successful(),
+                'payload_sent' => $payload
             ]);
         } catch (\Exception $e) {
             return response()->json([
