@@ -42,12 +42,25 @@ Route::middleware('guest:admin')->group(function () {
     // Dev Autologin
     if (app()->isLocal()) {
         Route::get('/admin/autologin', function() {
-            $user = \App\Models\User::where('is_admin', true)->first();
+            // Try to find an existing admin
+            $user = \App\Models\User::where('is_admin', 1)->first();
+            
+            // If no admin found, create one for convenience
+            if (!$user) {
+                $user = \App\Models\User::create([
+                    'name' => 'Admin User',
+                    'email' => 'admin@example.com',
+                    'password' => bcrypt('password'),
+                    'is_admin' => 1,
+                ]);
+            }
+
             if ($user) {
                 \Illuminate\Support\Facades\Auth::guard('admin')->login($user);
                 return redirect()->route('admin.dashboard');
             }
-            return 'No admin user found to autologin.';
+            
+            return 'Could not find or create an admin user.';
         })->name('admin.autologin');
     }
 });
