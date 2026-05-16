@@ -111,8 +111,11 @@
                 <!-- Action Buttons -->
                 <div class="pass-actions">
                     <button onclick="window.print()" class="btn-action secondary">
-                        <i class="bi bi-printer me-2"></i> Print / Save Pass
+                        <i class="bi bi-printer me-2"></i> Print Pass
                     </button>
+                    <a href="https://www.google.com/maps/dir/?api=1&destination={{ urlencode($registration->workshop->location) }}" target="_blank" class="btn-action primary">
+                        <i class="bi bi-geo-alt me-2"></i> Directions
+                    </a>
                 </div>
             </div>
         </div>
@@ -511,26 +514,43 @@
             font-weight: 800;
         }
 
+        .pass-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
         .btn-action {
-            width: 100%;
+            flex: 1;
             padding: 1.15rem;
             border-radius: 1.5rem;
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 0.95rem;
             border: none;
             transition: all 0.3s;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            text-decoration: none;
+        }
+
+        .btn-action.primary {
             background: #000;
             color: #fff;
             box-shadow: 0 8px 20px rgba(0,0,0,0.1);
         }
 
+        .btn-action.secondary {
+            background: #fff;
+            color: #000;
+            border: 1px solid #eee;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03);
+        }
+
         .btn-action:hover {
-            background: #222;
             transform: translateY(-2px);
+            opacity: 0.9;
         }
 
         @media (max-width: 600px) {
@@ -538,6 +558,7 @@
             .qr-container { width: 100%; height: auto; aspect-ratio: 1/1; }
             .detail-row { flex-direction: column; gap: 1rem; }
             .detail-group.text-end { text-align: left !important; }
+            .pass-actions { flex-direction: column; }
         }
 
         @media print {
