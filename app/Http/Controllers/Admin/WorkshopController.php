@@ -26,6 +26,7 @@ class WorkshopController extends Controller
             'description' => 'required|string',
             'date' => 'required|date',
             'location' => 'required|string|max:255',
+            'location_link' => 'nullable|string|max:1000',
             'max_seats' => 'required|integer|min:1',
             'is_active' => 'boolean',
         ]);
@@ -49,6 +50,7 @@ class WorkshopController extends Controller
             'description' => 'required|string',
             'date' => 'required|date',
             'location' => 'required|string|max:255',
+            'location_link' => 'nullable|string|max:1000',
             'max_seats' => 'required|integer|min:1',
             'is_active' => 'boolean',
         ]);

@@ -46,7 +46,15 @@
                 <div class="col-md-6">
                     <label class="nav-label mb-2 d-block">Workshop Experience</label>
                     <div class="fs-5 fw-bold text-primary">{{ $registration->workshop->title ?? 'N/A' }}</div>
-                    <div class="small text-muted mt-1">{{ $registration->workshop->location ?? '' }}</div>
+                    <div class="small text-muted mt-1">
+                        @if($registration->workshop && $registration->workshop->location_link)
+                            <a href="{{ $registration->workshop->location_link }}" target="_blank" class="text-decoration-none">
+                                <i class="bi bi-geo-alt"></i> {{ $registration->workshop->location ?? '' }}
+                            </a>
+                        @else
+                            {{ $registration->workshop->location ?? '' }}
+                        @endif
+                    </div>
                 </div>
                 <div class="col-md-6">
                     <label class="nav-label mb-2 d-block">Phone Contact</label>

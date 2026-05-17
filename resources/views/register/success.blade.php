@@ -99,7 +99,7 @@
                             <div class="detail-row mt-3">
                                 <div class="detail-group">
                                     <label>LOCATION</label>
-                                    <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($registration->workshop->location) }}" target="_blank" class="detail-value location-link">
+                                    <a href="{{ $registration->workshop->location_link ?? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($registration->workshop->location) }}" target="_blank" class="detail-value location-link">
                                         <i class="bi bi-geo-alt me-1"></i>{{ $registration->workshop->location }}
                                     </a>
                                 </div>
@@ -113,7 +113,7 @@
                     <button onclick="window.print()" class="btn-action secondary">
                         <i class="bi bi-printer me-2"></i> Print Pass
                     </button>
-                    <a href="https://www.google.com/maps/dir/?api=1&destination={{ urlencode($registration->workshop->location) }}" target="_blank" class="btn-action primary">
+                    <a href="{{ $registration->workshop->location_link ?? 'https://www.google.com/maps/dir/?api=1&destination=' . urlencode($registration->workshop->location) }}" target="_blank" class="btn-action primary">
                         <i class="bi bi-geo-alt me-2"></i> Directions
                     </a>
                 </div>

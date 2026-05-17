@@ -15,6 +15,7 @@ class Workshop extends Model
         'description',
         'date',
         'location',
+        'location_link',
         'max_seats',
         'is_active',
     ];

@@ -59,6 +59,14 @@
                 @enderror
             </div>
 
+            <div class="mb-3">
+                <label for="location_link" class="form-label fw-bold">Location Link (Google Maps / Custom Link)</label>
+                <input type="url" class="form-control @error('location_link') is-invalid @enderror" id="location_link" name="location_link" value="{{ old('location_link', $workshop->location_link) }}" placeholder="https://maps.google.com/...">
+                @error('location_link')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
             <div class="mb-4">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" {{ old('is_active', $workshop->is_active) ? 'checked' : '' }}>

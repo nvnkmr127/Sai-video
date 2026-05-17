@@ -83,6 +83,8 @@ class SendWebhookJob implements ShouldQueue
             'status' => $registration->status,
             'workshop_id' => $registration->workshop_id,
             'workshop_title' => $registration->workshop->title ?? 'N/A',
+            'workshop_location' => $registration->workshop->location ?? 'N/A',
+            'workshop_location_link' => $registration->workshop->location_link ?? ($registration->workshop && $registration->workshop->location ? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($registration->workshop->location) : null),
             'full_name' => $registration->full_name,
             'phone' => $registration->phone,
             'address' => $registration->address,
@@ -91,6 +93,14 @@ class SendWebhookJob implements ShouldQueue
             'qr_code_image_base64' => $qrCodeBase64,
             'qr_code_image_url' => $qrCodeUrl,
         ];
+
+        if ($this->event === 'registration.approved') {
+            $payload['event_location_link'] = $registration->workshop->location_link ?? ($registration->workshop && $registration->workshop->location
+                ? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($registration->workshop->location)
+                : null);
+            $payload['online_pass_url'] = route('registration.success', ['uuid' => $registration->qr_code_token]);
+            $payload['online_view_of_pass'] = route('registration.success', ['uuid' => $registration->qr_code_token]);
+        }
 
         $hasFailure = false;
 

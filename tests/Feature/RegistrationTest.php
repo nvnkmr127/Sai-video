@@ -321,4 +321,72 @@ class RegistrationTest extends TestCase
         $this->assertNotNull($reg->fresh()->checked_in_at);
         $this->assertEquals($admin->name, $reg->fresh()->checked_in_by);
     }
+
+    public function test_webhook_approved_payload_contains_links()
+    {
+        $workshop = $this->createWorkshop(['location' => 'Photo Studio Chicago']);
+        $reg = $this->createRegistration($workshop, [
+            'qr_code_token' => 'ABC123_TEST',
+            'status' => 'approved'
+        ]);
+
+        // Create an active WebhookConfig
+        $config = \App\Models\WebhookConfig::create([
+            'name' => 'Test Webhook',
+            'url' => 'https://example.com/webhook',
+            'secret_token' => 'secret',
+            'type' => 'registration_approved',
+            'is_active' => true,
+        ]);
+
+        \Illuminate\Support\Facades\Http::fake();
+
+        // Instantiate and run the job
+        $job = new \App\Jobs\SendWebhookJob($reg, $config->id, 'registration.approved');
+        $job->handle();
+
+        \Illuminate\Support\Facades\Http::assertSent(function ($request) use ($reg) {
+            $data = $request->data();
+            return $data['event'] === 'registration.approved'
+                && $data['event_location_link'] === 'https://www.google.com/maps/search/?api=1&query=Photo+Studio+Chicago'
+                && $data['online_pass_url'] === route('registration.success', ['uuid' => $reg->qr_code_token])
+                && $data['online_view_of_pass'] === route('registration.success', ['uuid' => $reg->qr_code_token]);
+        });
+    }
+
+    public function test_webhook_approved_payload_contains_custom_location_link()
+    {
+        $workshop = $this->createWorkshop([
+            'location' => 'Photo Studio Chicago',
+            'location_link' => 'https://custom-studio-maps.com/xyz'
+        ]);
+        $reg = $this->createRegistration($workshop, [
+            'qr_code_token' => 'ABC123_TEST_CUSTOM',
+            'status' => 'approved'
+        ]);
+
+        // Create an active WebhookConfig
+        $config = \App\Models\WebhookConfig::create([
+            'name' => 'Test Webhook Custom',
+            'url' => 'https://example.com/webhook',
+            'secret_token' => 'secret',
+            'type' => 'registration_approved',
+            'is_active' => true,
+        ]);
+
+        \Illuminate\Support\Facades\Http::fake();
+
+        // Instantiate and run the job
+        $job = new \App\Jobs\SendWebhookJob($reg, $config->id, 'registration.approved');
+        $job->handle();
+
+        \Illuminate\Support\Facades\Http::assertSent(function ($request) use ($reg) {
+            $data = $request->data();
+            return $data['event'] === 'registration.approved'
+                && $data['event_location_link'] === 'https://custom-studio-maps.com/xyz'
+                && $data['workshop_location_link'] === 'https://custom-studio-maps.com/xyz'
+                && $data['online_pass_url'] === route('registration.success', ['uuid' => $reg->qr_code_token])
+                && $data['online_view_of_pass'] === route('registration.success', ['uuid' => $reg->qr_code_token]);
+        });
+    }
 }

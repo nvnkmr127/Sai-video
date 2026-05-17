@@ -37,7 +37,15 @@
                             <div class="small fw-semibold">{{ \Carbon\Carbon::parse($workshop->date)->format('M d, Y') }}</div>
                             <div class="small text-muted">{{ \Carbon\Carbon::parse($workshop->date)->format('H:i') }}</div>
                         </td>
-                        <td class="small">{{ $workshop->location }}</td>
+                        <td class="small">
+                            @if($workshop->location_link)
+                                <a href="{{ $workshop->location_link }}" target="_blank" class="text-decoration-none">
+                                    <i class="bi bi-geo-alt"></i> {{ $workshop->location }}
+                                </a>
+                            @else
+                                {{ $workshop->location }}
+                            @endif
+                        </td>
                         <td>
                             <div class="small">Max: {{ $workshop->max_seats }}</div>
                         </td>
