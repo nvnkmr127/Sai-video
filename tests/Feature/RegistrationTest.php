@@ -187,6 +187,7 @@ class RegistrationTest extends TestCase
         $this->get('/validate')->assertStatus(403);
         $this->get('/validate?key=wrong')->assertStatus(403);
         $this->get('/validate?key=' . $correctKey)->assertStatus(200);
+        $this->get('/validate?key=DESK_SECRET')->assertStatus(200);
     }
 
     public function test_qr_scan_checks_in_valid_attendee()
