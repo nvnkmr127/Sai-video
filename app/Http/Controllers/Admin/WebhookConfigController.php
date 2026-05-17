@@ -83,6 +83,7 @@ class WebhookConfigController extends Controller
                 $event = 'registration.created';
                 if ($webhook->type === 'registration_pending') $event = 'registration.pending';
                 if ($webhook->type === 'registration_approved') $event = 'registration.approved';
+                if ($webhook->type === 'registration_checked_in') $event = 'registration.checked_in';
 
                 $payload = [
                     'event' => $event,
@@ -96,8 +97,10 @@ class WebhookConfigController extends Controller
                     'address' => '123 Test St, Sector 4, Sample City',
                     'organization' => 'Test Organization',
                     'qr_code_token' => (string) \Illuminate\Support\Str::uuid(),
-                    'qr_code_image_base64' => ($event === 'registration.approved') ? 'base64_encoded_image_sample' : null,
-                    'qr_code_image_url' => ($event === 'registration.approved') ? 'https://example.com/sample-qr.png' : null,
+                    'qr_code_image_base64' => ($event !== 'registration.pending') ? 'base64_encoded_image_sample' : null,
+                    'qr_code_image_url' => ($event !== 'registration.pending') ? 'https://example.com/sample-qr.png' : null,
+                    'checked_in_at' => ($event === 'registration.checked_in') ? now()->toIso8601String() : null,
+                    'checked_in_by' => ($event === 'registration.checked_in') ? 'Desk Scanner' : null,
                     'is_test' => true
                 ];
             }

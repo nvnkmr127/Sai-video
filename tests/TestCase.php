@@ -29,6 +29,7 @@ abstract class TestCase extends BaseTestCase
 
     protected function setOtp(string $phone, int $otp = 123456): void
     {
-        Cache::put('otp_' . $phone, $otp, 600);
+        $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
+        Cache::put('otp_' . $normalizedPhone, $otp, 600);
     }
 }

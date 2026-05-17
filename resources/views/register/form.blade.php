@@ -36,10 +36,10 @@
                     <span class="info-badge">Join the event</span>
                     <h1 class="workshop-title">{{ $workshop->title }}</h1>
                     <div class="info-meta">
-                        @if($workshop->scheduled_at)
+                        @if($workshop->date)
                         <div class="meta-item">
                             <i class="bi bi-calendar3"></i>
-                            <span>{{ $workshop->scheduled_at->format('M d, Y') }}</span>
+                            <span>{{ $workshop->date->format('M d, Y') }}</span>
                         </div>
                         @endif
                         <div class="meta-item">
@@ -573,7 +573,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     body: JSON.stringify({ 
                         phone: phoneInput.value,
-                        workshop_id: "{{ $workshop->id }}"
+                        workshop_id: "{{ $workshop?->id }}"
                     })
                 });
                 

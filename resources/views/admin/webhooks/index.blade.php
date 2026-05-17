@@ -80,7 +80,7 @@
         </table>
     </div>
     @if($configs->hasPages())
-        <div class="card-footer bg-white py-3">
+        <div class="p-4 border-top border-secondary border-opacity-25">
             {{ $configs->links() }}
         </div>
     @endif

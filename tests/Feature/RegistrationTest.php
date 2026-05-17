@@ -37,7 +37,9 @@ class RegistrationTest extends TestCase
         $response = $this->postJson('/otp/send', ['phone' => $phone]);
         $response->assertStatus(200);
         $response->assertJson(['success' => true]);
-        $this->assertTrue(Cache::has('otp_' . $phone));
+
+        $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
+        $this->assertTrue(Cache::has('otp_' . $normalizedPhone));
     }
 
     public function test_otp_send_rate_limited_by_phone()
@@ -73,7 +75,17 @@ class RegistrationTest extends TestCase
         $this->assertDatabaseHas('registrations', [
             'phone'       => $phone,
             'workshop_id' => $workshop->id,
+            'status'      => 'pending',
         ]);
+        Queue::assertNotPushed(RegistrationCreated::class);
+        Queue::assertPushed(\App\Jobs\SendWebhookJob::class);
+
+        // Log in as admin and approve the registration
+        $admin = $this->loginAdmin();
+        $approveResponse = $this->post("/admin/registrations/{$registration->id}/approve");
+        $approveResponse->assertRedirect();
+
+        $this->assertEquals('approved', $registration->fresh()->status);
         Queue::assertPushed(RegistrationCreated::class);
     }
 
@@ -182,7 +194,8 @@ class RegistrationTest extends TestCase
         $workshop = $this->createWorkshop();
         $token = 'test-token-1234';
         $registration = $this->createRegistration($workshop, [
-            'qr_code_token' => $token
+            'qr_code_token' => $token,
+            'status'        => 'approved'
         ]);
         $key = config('app.desk_secret');
 
@@ -196,13 +209,33 @@ class RegistrationTest extends TestCase
         $this->assertNotNull($registration->fresh()->checked_in_at);
     }
 
+    public function test_qr_scan_blocks_unapproved_registration()
+    {
+        $workshop = $this->createWorkshop();
+        $token = 'test-token-unapproved';
+        $registration = $this->createRegistration($workshop, [
+            'qr_code_token' => $token,
+            'status'        => 'pending'
+        ]);
+        $key = config('app.desk_secret');
+
+        $response = $this->postJson('/validate/check', [
+            'token' => $token,
+            'key'   => $key
+        ]);
+
+        $response->assertStatus(403);
+        $response->assertJson(['success' => false, 'code' => 'NOT_APPROVED']);
+    }
+
     public function test_qr_scan_blocks_duplicate_checkin()
     {
         $workshop = $this->createWorkshop();
         $token = 'test-token-dup';
         $this->createRegistration($workshop, [
             'qr_code_token'   => $token,
-            'checked_in_at'   => now()
+            'checked_in_at'   => now(),
+            'status'          => 'approved'
         ]);
         $key = config('app.desk_secret');
 
@@ -277,7 +310,9 @@ class RegistrationTest extends TestCase
     {
         $admin = $this->loginAdmin();
         $workshop = $this->createWorkshop();
-        $reg = $this->createRegistration($workshop);
+        $reg = $this->createRegistration($workshop, [
+            'status' => 'approved'
+        ]);
 
         $response = $this->postJson("/admin/registrations/{$reg->id}/checkin");
 

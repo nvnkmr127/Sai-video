@@ -216,7 +216,12 @@ class AdminController extends Controller
             return back()->with('error', 'Please wait 60 seconds before resending another webhook.');
         }
 
-        SendWebhookJob::dispatch($registration);
+        $event = 'registration.pending';
+        if ($registration->status === 'approved') {
+            $event = $registration->checked_in_at ? 'registration.checked_in' : 'registration.approved';
+        }
+
+        SendWebhookJob::dispatch($registration, null, $event);
 
         return back()->with('success', 'Webhook delivery re-dispatched successfully.');
     }

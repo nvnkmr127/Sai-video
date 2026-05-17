@@ -79,12 +79,12 @@ class RegistrationController extends Controller
         // Normalize for consistent duplicate check
         $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
 
-        $cachedOtp = Cache::get('otp_' . $phone);
+        $cachedOtp = Cache::get('otp_' . $normalizedPhone);
 
         if (!$cachedOtp || (string)$cachedOtp !== (string)$submittedOtp) {
             return back()->withInput()->withErrors(['otp' => 'Invalid or expired verification code. Please request a new OTP.']);
         }
-        Cache::forget('otp_' . $phone);
+        Cache::forget('otp_' . $normalizedPhone);
 
         // Check for duplicate phone + workshop combination using normalized phone
         $alreadyRegistered = Registration::where('workshop_id', $workshop->id)
@@ -175,8 +175,8 @@ class RegistrationController extends Controller
         // Generate a 6-digit OTP
         $otp = rand(100000, 999999);
         
-        // Store in cache for 10 minutes
-        Cache::put('otp_' . $phone, $otp, now()->addMinutes(10));
+        // Store in cache for 10 minutes using normalized phone to prevent formatting bypass issues
+        Cache::put('otp_' . $normalizedPhone, $otp, now()->addMinutes(10));
         
         // Find active OTP webhooks
         $webhooks = WebhookConfig::where('type', 'otp')->where('is_active', true)->get();
