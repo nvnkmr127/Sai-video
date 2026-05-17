@@ -92,6 +92,8 @@ class WebhookConfigController extends Controller
                     'registration_id' => 999,
                     'workshop_id' => 1,
                     'workshop_title' => 'Sample Workshop (Test)',
+                    'workshop_location' => 'Sample Location (Test)',
+                    'workshop_location_link' => 'https://maps.google.com/sample',
                     'full_name' => 'John Doe',
                     'phone' => '+919876543210',
                     'address' => '123 Test St, Sector 4, Sample City',
@@ -103,6 +105,12 @@ class WebhookConfigController extends Controller
                     'checked_in_by' => ($event === 'registration.checked_in') ? 'Desk Scanner' : null,
                     'is_test' => true
                 ];
+
+                if ($event === 'registration.approved') {
+                    $payload['event_location_link'] = 'https://maps.google.com/sample';
+                    $payload['online_pass_url'] = route('registration.success', ['uuid' => 'sample-uuid']);
+                    $payload['online_view_of_pass'] = route('registration.success', ['uuid' => 'sample-uuid']);
+                }
             }
 
             $response = Http::withHeaders([
