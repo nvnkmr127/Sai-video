@@ -44,7 +44,7 @@
                         @endif
                         <div class="meta-item">
                             <i class="bi bi-geo-alt"></i>
-                            <span>{{ $workshop->location ?? 'Global Event' }}</span>
+                            <span>Hyderabad</span>
                         </div>
                     </div>
                 </div>
@@ -64,7 +64,7 @@
                     <a href="/" class="btn-primary">Back to Home</a>
                 </div>
             @else
-                <form action="{{ route('registration.store') }}" method="POST" id="registrationForm" class="step-form">
+                <form action="{{ route('registration.store') }}" method="POST" id="registrationForm" class="step-form" data-error-keys='@json($errors->keys())'>
                     @csrf
                     <input type="hidden" name="workshop_id" value="{{ $workshop->id }}">
                     
@@ -184,10 +184,13 @@
 
     .registration-page {
         position: fixed;
-        top: 0; left: 0; width: 100%; height: 100vh;
+        top: 0; left: 0; width: 100%;
+        height: 100svh;
+        min-height: 100vh;
         background: #f8fafc;
         z-index: 100;
-        overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
     }
 
     /* Progress Bar */
@@ -439,7 +442,7 @@
     @media (max-width: 992px) {
         .layout-wrapper { flex-direction: column; overflow-y: auto; height: 100%; }
         .visual-pane { flex: none; height: 35vh; min-height: 250px; }
-        .form-pane { flex: none; padding: 2rem 1.5rem 7rem; min-height: 65vh; }
+        .form-pane { flex: none; padding: 2rem 1.5rem 7rem; min-height: 25vh; }
         .workshop-title { font-size: 2.25rem; }
         .visual-content { padding: 1.5rem; }
         .step-header { margin-bottom: 2rem; }
@@ -450,7 +453,7 @@
     }
 
     @media (max-width: 576px) {
-        .visual-pane { height: 25vh; min-height: 180px; }
+        .visual-pane { height: 25vh; min-height: 380px; }
         .step-header { margin-bottom: 1.5rem; }
         .step-header h3 { font-size: 1.5rem; }
         .step-header p { font-size: 0.95rem; }
@@ -482,12 +485,22 @@ document.addEventListener('DOMContentLoaded', function() {
         'otp': 2,
         'address': 3
     };
+    let errorKeys = [];
+    try {
+        const form = document.getElementById('registrationForm');
+        const raw = form?.getAttribute('data-error-keys') || '[]';
+        errorKeys = JSON.parse(raw);
+    } catch (e) {
+        errorKeys = [];
+    }
 
-    @foreach($errors->keys() as $key)
-        if (errorFields['{{ $key }}'] !== undefined) {
-            currentStep = errorFields['{{ $key }}'];
-        }
-    @endforeach
+    if (Array.isArray(errorKeys)) {
+        errorKeys.forEach((key) => {
+            if (errorFields[key] !== undefined) {
+                currentStep = errorFields[key];
+            }
+        });
+    }
 
     function updateUI() {
         steps.forEach((step, idx) => {

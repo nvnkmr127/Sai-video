@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="success-page">
+    <div class="success-page" id="successPage" data-qr-poll="{{ ($registration->status === 'approved' && !$registration->qr_code_path) ? '1' : '0' }}" data-qr-status-url="{{ route('registration.qr-status', ['token' => $registration->qr_code_token]) }}">
         <!-- Immersive Background -->
         <div class="dynamic-bg">
             @if(!empty($siteSettings['slider_images']))
@@ -99,9 +99,15 @@
                             <div class="detail-row mt-3">
                                 <div class="detail-group">
                                     <label>LOCATION</label>
-                                    <a href="{{ $registration->workshop->location_link ?? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($registration->workshop->location) }}" target="_blank" class="detail-value location-link">
-                                        <i class="bi bi-geo-alt me-1"></i>{{ $registration->workshop->location }}
-                                    </a>
+                                    @if($registration->status === 'approved')
+                                        <a href="{{ $registration->workshop->location_link ?? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($registration->workshop->location) }}" target="_blank" class="detail-value location-link">
+                                            <i class="bi bi-geo-alt me-1"></i>{{ $registration->workshop->location }}
+                                        </a>
+                                    @else
+                                        <span class="detail-value">
+                                            <i class="bi bi-geo-alt me-1"></i>Hyderabad
+                                        </span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -113,9 +119,11 @@
                     <button onclick="window.print()" class="btn-action secondary">
                         <i class="bi bi-printer me-2"></i> Print Pass
                     </button>
-                    <a href="{{ $registration->workshop->location_link ?? 'https://www.google.com/maps/dir/?api=1&destination=' . urlencode($registration->workshop->location) }}" target="_blank" class="btn-action primary">
-                        <i class="bi bi-geo-alt me-2"></i> Directions
-                    </a>
+                    @if($registration->status === 'approved')
+                        <a href="{{ $registration->workshop->location_link ?? 'https://www.google.com/maps/dir/?api=1&destination=' . urlencode($registration->workshop->location) }}" target="_blank" class="btn-action primary">
+                            <i class="bi bi-geo-alt me-2"></i> Directions
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -582,9 +590,13 @@
             }, 6000);
         }
 
-        @if($registration->status === 'approved' && !$registration->qr_code_path)
-        const pollForQr = () => {
-            fetch('/qr-status/{{ $registration->qr_code_token }}')
+        const root = document.getElementById('successPage');
+        const shouldPollQr = root?.getAttribute('data-qr-poll') === '1';
+        const qrStatusUrl = root?.getAttribute('data-qr-status-url');
+
+        if (shouldPollQr && qrStatusUrl) {
+            const pollForQr = () => {
+                fetch(qrStatusUrl)
                 .then(res => res.json())
                 .then(data => {
                     if (data.ready) {
@@ -601,10 +613,9 @@
                     }
                 })
                 .catch(() => setTimeout(pollForQr, 5000));
-        };
-        setTimeout(pollForQr, 2000);
-        @endif
+            };
+            setTimeout(pollForQr, 2000);
+        }
     });
     </script>
 @endsection
-
