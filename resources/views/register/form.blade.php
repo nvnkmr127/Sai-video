@@ -128,6 +128,7 @@
                         <div id="otpTimerContainer" class="timer-display" style="display: none;">
                             <i class="bi bi-clock-history"></i> Resend code in <span id="timerValue">30</span>s
                         </div>
+                        <button type="button" id="resendOtpBtn" class="otp-resend-btn" style="display: none;">Request new OTP</button>
                         <div class="step-actions">
                             <button type="button" class="btn-next">Verify Code <i class="bi bi-check-lg"></i></button>
                         </div>
@@ -396,6 +397,19 @@
     .empty-state p { margin-bottom: 2rem; color: var(--text-light); }
 
     .timer-display { margin-top: 1rem; font-size: 0.9rem; color: var(--text-light); display: flex; align-items: center; gap: 0.5rem; }
+    .otp-resend-btn {
+        margin-top: 0.75rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--accent);
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+        width: fit-content;
+    }
+    .otp-resend-btn:hover { text-decoration: underline; }
 
     /* Responsive */
     @media (max-width: 1200px) {
@@ -434,6 +448,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const phoneInput = document.getElementById('phone');
     const timerValue = document.getElementById('timerValue');
     const timerContainer = document.getElementById('otpTimerContainer');
+    const resendOtpBtn = document.getElementById('resendOtpBtn');
+    let otpCooldownInterval = null;
     
     let currentStep = 0;
     const totalSteps = steps.length;
@@ -527,19 +543,43 @@ document.addEventListener('DOMContentLoaded', function() {
         progressBar.style.width = progress + '%';
     }
 
+    function startOtpCooldown(seconds = 30) {
+        if (!timerContainer || !timerValue) return;
+
+        if (otpCooldownInterval) {
+            clearInterval(otpCooldownInterval);
+            otpCooldownInterval = null;
+        }
+
+        if (resendOtpBtn) {
+            resendOtpBtn.style.display = 'none';
+            resendOtpBtn.disabled = true;
+        }
+
+        timerContainer.style.display = 'flex';
+        timerValue.textContent = String(seconds);
+        let remaining = seconds;
+
+        otpCooldownInterval = setInterval(() => {
+            remaining -= 1;
+            timerValue.textContent = String(Math.max(0, remaining));
+
+            if (remaining <= 0) {
+                clearInterval(otpCooldownInterval);
+                otpCooldownInterval = null;
+                timerContainer.style.display = 'none';
+                if (resendOtpBtn) {
+                    resendOtpBtn.style.display = 'inline-block';
+                    resendOtpBtn.disabled = false;
+                }
+            }
+        }, 1000);
+    }
+
     function sendOTP() {
         if (!phoneInput.value) return;
 
-        timerContainer.style.display = 'flex';
-        let seconds = 30;
-        const interval = setInterval(() => {
-            seconds--;
-            timerValue.textContent = seconds;
-            if (seconds <= 0) {
-                clearInterval(interval);
-                timerContainer.style.display = 'none';
-            }
-        }, 1000);
+        startOtpCooldown(30);
 
         fetch("{{ route('registration.otp.send') }}", {
             method: "POST",
@@ -559,6 +599,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(err => console.error("OTP Error:", err));
+    }
+
+    if (resendOtpBtn) {
+        resendOtpBtn.addEventListener('click', () => {
+            clearFieldError('otp');
+            sendOTP();
+        });
     }
 
     async function validateCurrentStep() {
