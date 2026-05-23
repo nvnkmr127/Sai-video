@@ -97,7 +97,7 @@
                             <p>Please provide your <strong>WhatsApp number</strong> for updates.</p>
                         </div>
                         <div class="input-group-custom">
-                            <input type="tel" name="phone" id="phone" class="custom-input @error('phone') is-invalid @enderror" placeholder="+91" value="{{ old('phone') }}" required pattern="^\\+?[0-9\\s\\-]{7,20}$">
+                            <input type="tel" name="phone" id="phone" class="custom-input @error('phone') is-invalid @enderror" placeholder="+91" value="{{ old('phone') }}" required inputmode="tel" autocomplete="tel">
                             <label for="phone">WhatsApp Number</label>
                             @error('phone')
                                 <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ $message }}</div>
@@ -505,6 +505,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    const phoneInputEl = document.getElementById('phone');
+    if (phoneInputEl) {
+        phoneInputEl.addEventListener('input', () => {
+            const raw = String(phoneInputEl.value || '');
+            const trimmed = raw.replace(/[^\d+\-\s]/g, '');
+            if (phoneInputEl.value !== trimmed) phoneInputEl.value = trimmed;
+        });
+    }
+
     function updateUI() {
         steps.forEach((step, idx) => {
             step.classList.toggle('active', idx === currentStep);
@@ -591,8 +600,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentStep === 1) {
             clearFieldError('phone');
             const rawPhone = String(phoneInput?.value || '').trim();
-            if (rawPhone.length < 7) {
-                setFieldError('phone', 'Please enter a valid WhatsApp number.');
+            const digits = rawPhone.replace(/\D+/g, '');
+            if (digits.length < 7 || digits.length > 15) {
+                setFieldError('phone', 'Please enter a valid WhatsApp number (7–15 digits).');
                 phoneInput?.focus();
                 return false;
             }
