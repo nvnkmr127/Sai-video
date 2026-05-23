@@ -371,6 +371,26 @@ class RegistrationTest extends TestCase
         $response->assertSee('QR Test User');
     }
 
+    public function test_success_page_shows_checked_in_status()
+    {
+        $workshop = $this->createWorkshop([
+            'starts_at' => '2026-06-02 10:00:00'
+        ]);
+        $registration = $this->createRegistration($workshop, [
+            'full_name'     => 'Checked In User',
+            'qr_code_path'  => 'qrcodes/test.png',
+            'status'        => 'approved',
+            'checked_in_at' => now(),
+        ]);
+
+        $response = $this->get(route('registration.success', $registration->qr_code_token));
+        $response->assertStatus(200);
+        $response->assertSee('CHECKED IN');
+        $response->assertSee('Checked In Pass');
+        $response->assertSee('10:00 AM');
+    }
+
+
     public function test_validator_page_requires_desk_key()
     {
         config(['app.desk_secret' => 'test-secret']);

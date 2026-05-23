@@ -29,6 +29,7 @@ class WorkshopDemoSeeder extends Seeder
             [
                 'description' => 'A deep dive into Laravel internals.',
                 'date' => now()->addDays(7),
+                'starts_at' => now()->addDays(7)->setTime(10, 0, 0),
                 'location' => 'Main Hall A',
                 'max_seats' => 50,
                 'is_active' => true,
@@ -40,6 +41,7 @@ class WorkshopDemoSeeder extends Seeder
             [
                 'description' => 'Legacy PHP patterns.',
                 'date' => now()->subMonths(2),
+                'starts_at' => now()->subMonths(2)->setTime(14, 30, 0),
                 'location' => 'Basement Room 4',
                 'max_seats' => 20,
                 'is_active' => false,

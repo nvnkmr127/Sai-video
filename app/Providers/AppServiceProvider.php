@@ -29,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
                     'logo' => \App\Models\Setting::getValue('logo'),
                     'footer_text' => \App\Models\Setting::getValue('footer_text', '© ' . date('Y') . ' WorkshopPro. All rights reserved.'),
                     'slider_images' => json_decode(\App\Models\Setting::getValue('slider_images', '[]'), true),
+                    'success_background' => \App\Models\Setting::getValue('success_background'),
                 ];
                 view()->share('siteSettings', $siteSettings);
             }

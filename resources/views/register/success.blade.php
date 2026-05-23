@@ -136,7 +136,13 @@
 
                     <div class="text-center mb-8">
                         @if($registration->status === 'approved')
-                            <p class="font-code-id text-[10px] text-white/40 tracking-[0.4em] mb-2 uppercase">Production Pass</p>
+                            <p class="font-code-id text-[10px] text-white/40 tracking-[0.4em] mb-2 uppercase">
+                                @if($registration->checked_in_at)
+                                    <span class="text-emerald-400">●</span> Checked In Pass
+                                @else
+                                    Production Pass
+                                @endif
+                            </p>
                         @else
                             <p class="font-code-id text-[10px] text-white/40 tracking-[0.4em] mb-2 uppercase">STATUS: WAITING LIST</p>
                         @endif
@@ -151,13 +157,13 @@
                                 <div class="absolute top-0 left-0 w-full h-[2px] bg-primary/40 animate-[scan_2s_linear_infinite] pointer-events-none z-10"></div>
 
                                 @if($registration->qr_code_path)
-                                    <img src="/storage/{{ $registration->qr_code_path }}" alt="Pass QR Code" id="qr-image" class="w-48 h-48 block relative z-0 grayscale">
+                                    <img src="/storage/{{ $registration->qr_code_path }}" alt="Pass QR Code" id="qr-image" class="w-48 h-48 block relative z-0 grayscale bg-white p-3 rounded-lg">
                                 @else
                                     <div id="qr-spinner" class="w-48 h-48 flex flex-col items-center justify-center gap-3 text-white/70 font-code-id text-[10px] tracking-widest">
                                         <span class="spinner-custom"></span>
                                         GENERATING...
                                     </div>
-                                    <img id="qr-image" alt="Pass QR Code" class="w-48 h-48 block relative z-0 grayscale" style="display: none;">
+                                    <img id="qr-image" alt="Pass QR Code" class="w-48 h-48 block relative z-0 grayscale bg-white p-3 rounded-lg" style="display: none;">
                                 @endif
                             </div>
                             <p class="font-code-id text-[10px] text-center mt-3 text-white/40 tracking-[0.5em]">UID: {{ strtoupper($registration->qr_code_token) }}</p>
@@ -212,7 +218,13 @@
                             </div>
                             <div class="flex flex-col gap-1 text-right">
                                 <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Status</span>
-                                <span class="font-code-id text-sm text-white">{{ strtoupper($registration->status) }}</span>
+                                <span class="font-code-id text-sm {{ $registration->checked_in_at ? 'text-emerald-400 font-bold' : 'text-white' }}">
+                                    @if($registration->checked_in_at)
+                                        CHECKED IN
+                                    @else
+                                        {{ strtoupper($registration->status) }}
+                                    @endif
+                                </span>
                             </div>
                             <div class="flex flex-col gap-1 col-span-2">
                                 <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Location</span>
@@ -245,7 +257,7 @@
                     <div class="w-full mt-8 flex flex-col gap-3">
                         @if($registration->status === 'approved')
                             <button type="button" onclick="window.print()" class="w-full py-4 bg-white text-black font-code-id text-sm uppercase font-bold tracking-widest flex items-center justify-center gap-3 hover:bg-primary transition-colors rounded-lg">
-                                <span class="material-symbols-outlined">movie</span>
+                                <span class="material-symbols-outlined">print</span>
                                 Print Pass
                             </button>
                             <a href="{{ $registration->workshop->location_link ?? 'https://www.google.com/maps/dir/?api=1&destination=' . urlencode($registration->workshop->location) }}" target="_blank" class="w-full py-3 border border-white/20 text-white/60 font-code-id text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:text-white hover:border-white/30 transition-colors">
@@ -271,7 +283,7 @@
             align-items: center;
             justify-content: center;
             padding: 32px;
-            background-color: #000;
+            background-color: transparent;
             color: #fff;
             overflow-x: hidden;
         }
@@ -282,13 +294,14 @@
         .dynamic-bg {
             position: fixed;
             inset: 0;
-            z-index: -1;
+            z-index: 1;
+            background-color: #000;
         }
 
         .dots-overlay {
             position: fixed;
             inset: 0;
-            z-index: -1;
+            z-index: 2;
             pointer-events: none;
             opacity: 0.1;
             background-image: radial-gradient(circle, #ffffff 1px, transparent 1px);
@@ -316,7 +329,8 @@
         .content-wrapper {
             width: 100%;
             max-width: 420px;
-            z-index: 1;
+            position: relative;
+            z-index: 10;
         }
 
         .glass-card {
@@ -714,9 +728,33 @@
         }
 
         @media print {
-            .dynamic-bg, .dots-overlay { display: none !important; }
+            .dynamic-bg, .dots-overlay, .w-full.mt-8.flex.flex-col.gap-3 { display: none !important; }
             body { background: white !important; padding: 0 !important; color: #000 !important; }
             .success-page { display: block; padding: 0 !important; background: transparent !important; }
+            
+            /* Print Card Styling */
+            .pass-shell {
+                background: white !important;
+                color: black !important;
+                border: 2px solid #000 !important;
+                box-shadow: none !important;
+                margin: 0 auto !important;
+                page-break-inside: avoid;
+            }
+            .pass-shell * {
+                color: black !important;
+                border-color: #000000 !important;
+            }
+            /* High contrast QR code */
+            #qr-image {
+                filter: none !important;
+                -webkit-filter: none !important;
+                background: white !important;
+                padding: 0 !important;
+            }
+            .absolute {
+                border-color: #000000 !important;
+            }
         }
     </style>
 
@@ -776,7 +814,7 @@
                 fetch(qrStatusUrl, { headers: { 'Accept': 'application/json' } })
                     .then(res => res.json())
                     .then(data => {
-                        if (data?.status === 'approved') {
+                        if (data && data.status === 'approved') {
                             window.location.reload();
                             return;
                         }
@@ -792,5 +830,20 @@
                         checkApprovalBtn.innerHTML = original;
                     });
             });
+
+            // Automatic background polling for approval (every 10s)
+            const autoPollApproval = () => {
+                fetch(qrStatusUrl, { headers: { 'Accept': 'application/json' } })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.status === 'approved') {
+                            window.location.reload();
+                        } else {
+                            setTimeout(autoPollApproval, 10000);
+                        }
+                    })
+                    .catch(() => setTimeout(autoPollApproval, 15000));
+            };
+            setTimeout(autoPollApproval, 10000);
         }
     </script>
