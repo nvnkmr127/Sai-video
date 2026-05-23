@@ -118,7 +118,7 @@
                             <p>Enter the 6-digit code sent to your WhatsApp.</p>
                         </div>
                         <div class="input-group-custom">
-                            <input type="text" name="otp" id="otp" class="custom-input otp-input @error('otp') is-invalid @enderror" placeholder="000000" maxlength="6" inputmode="numeric" required pattern="^\\d{6}$">
+                            <input type="text" name="otp" id="otp" class="custom-input otp-input @error('otp') is-invalid @enderror" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code" required>
                             <label for="otp">Verification Code</label>
                             @error('otp')
                                 <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ $message }}</div>
@@ -497,6 +497,14 @@ document.addEventListener('DOMContentLoaded', function() {
         el.addEventListener('change', () => clearFieldError(field));
     });
 
+    const otpInput = document.getElementById('otp');
+    if (otpInput) {
+        otpInput.addEventListener('input', () => {
+            const next = String(otpInput.value || '').replace(/\D+/g, '').slice(0, 6);
+            if (otpInput.value !== next) otpInput.value = next;
+        });
+    }
+
     function updateUI() {
         steps.forEach((step, idx) => {
             step.classList.toggle('active', idx === currentStep);
@@ -547,6 +555,17 @@ document.addEventListener('DOMContentLoaded', function() {
     async function validateCurrentStep() {
         const input = steps[currentStep].querySelector('input, textarea');
         if (input) {
+            if (input.id === 'otp') {
+                clearFieldError('otp');
+                const value = String(input.value || '').trim();
+                if (!/^\d{6}$/.test(value)) {
+                    setFieldError('otp', 'Please enter the 6-digit code.');
+                    input.focus();
+                    return false;
+                }
+                return true;
+            }
+
             clearFieldError(input.id);
             if (!input.checkValidity()) {
                 setFieldError(input.id, input.validationMessage || 'Please enter a valid value.');
@@ -555,19 +574,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        if (currentStep === 2) {
-            const otpInput = document.getElementById('otp');
-            if (otpInput) {
-                clearFieldError('otp');
-                const value = String(otpInput.value || '').trim();
-                if (!/^\d{6}$/.test(value)) {
-                    setFieldError('otp', 'Please enter the 6-digit code.');
-                    otpInput.focus();
-                    return false;
-                }
-            }
-        }
-        
         if (currentStep === 3) {
             const addressInput = document.getElementById('address');
             if (addressInput) {
