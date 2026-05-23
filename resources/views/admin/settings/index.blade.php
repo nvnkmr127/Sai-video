@@ -73,6 +73,27 @@
                 @endif
             </div>
 
+            <div class="content-card p-4 mb-4">
+                <h4 class="fw-bold mb-3"><i class="bi bi-camera-reels me-2 text-primary"></i> Success Pass Background</h4>
+                <div class="row align-items-center">
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        @if($settings['success_background'])
+                            <img src="{{ Storage::url($settings['success_background']) }}" class="img-thumbnail w-100" style="height: 140px; object-fit: cover;">
+                        @else
+                            <div class="img-thumbnail bg-light d-flex align-items-center justify-content-center" style="height: 140px;">
+                                <span class="text-muted small">No Image</span>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Upload Background Image</label>
+                        <input type="file" name="success_background" class="form-control @error('success_background') is-invalid @enderror">
+                        <div class="form-text">Used as the background for the success pass page. If empty, slider images are used.</div>
+                        @error('success_background') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                </div>
+            </div>
+
             <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary px-5 py-3 rounded-4 fw-bold shadow">
                     <i class="bi bi-cloud-arrow-up me-2"></i> SAVE ALL SETTINGS

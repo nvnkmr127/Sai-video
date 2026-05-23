@@ -15,6 +15,7 @@ class SettingsController extends Controller
             'logo' => Setting::getValue('logo'),
             'footer_text' => Setting::getValue('footer_text', '© ' . date('Y') . ' WorkshopPro. All rights reserved.'),
             'slider_images' => json_decode(Setting::getValue('slider_images', '[]'), true),
+            'success_background' => Setting::getValue('success_background'),
         ];
 
         return view('admin.settings.index', compact('settings'));
@@ -26,6 +27,7 @@ class SettingsController extends Controller
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
             'footer_text' => 'nullable|string|max:255',
             'slider_images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'success_background' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
         // Handle Logo
@@ -53,6 +55,16 @@ class SettingsController extends Controller
             }
             $allImages = array_merge($existingImages, $newImages);
             Setting::setValue('slider_images', json_encode($allImages));
+        }
+
+        if ($request->hasFile('success_background')) {
+            $old = Setting::getValue('success_background');
+            if ($old) {
+                Storage::disk('public')->delete($old);
+            }
+
+            $path = $request->file('success_background')->store('settings/success', 'public');
+            Setting::setValue('success_background', $path);
         }
 
         return back()->with('success', 'Settings updated successfully.');

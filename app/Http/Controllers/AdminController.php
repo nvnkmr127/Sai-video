@@ -206,6 +206,182 @@ class AdminController extends Controller
         }
     }
 
+    public function bulk(Request $request)
+    {
+        $validated = $request->validate([
+            'action' => 'required|string|in:approve,checkin,uncheckin,resend_webhook,delete',
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|min:1',
+            'redirect' => 'nullable|string',
+        ]);
+
+        $action = (string) $validated['action'];
+        $ids = collect($validated['ids'])
+            ->map(fn ($v) => (int) $v)
+            ->filter(fn ($v) => $v > 0)
+            ->values()
+            ->all();
+
+        $redirect = (string) ($validated['redirect'] ?? '');
+        $redirectUrl = route('admin.registrations.index');
+        if ($redirect && str_starts_with($redirect, url('/'))) {
+            $redirectUrl = $redirect;
+        }
+
+        $done = 0;
+        $skipped = 0;
+        $errors = 0;
+
+        try {
+            DB::transaction(function () use ($ids, $action, &$done, &$skipped, &$errors) {
+                $registrations = Registration::query()
+                    ->whereIn('id', $ids)
+                    ->lockForUpdate()
+                    ->get();
+
+                if ($registrations->isEmpty()) {
+                    $skipped = count($ids);
+                    return;
+                }
+
+                $adminName = auth('admin')->user()->name ?? 'Admin';
+
+                if ($action === 'approve') {
+                    $workshopIds = $registrations->pluck('workshop_id')->filter()->unique()->values()->all();
+                    $workshops = Workshop::query()->whereIn('id', $workshopIds)->get()->keyBy('id');
+                    $approvedCounts = Registration::query()
+                        ->whereIn('workshop_id', $workshopIds)
+                        ->where('status', 'approved')
+                        ->groupBy('workshop_id')
+                        ->select('workshop_id', DB::raw('count(*) as c'))
+                        ->pluck('c', 'workshop_id');
+
+                    $remainingByWorkshop = [];
+                    foreach ($workshops as $wid => $workshop) {
+                        $maxSeats = (int) ($workshop->max_seats ?? 0);
+                        if ($maxSeats <= 0) {
+                            $remainingByWorkshop[$wid] = null;
+                            continue;
+                        }
+                        $remainingByWorkshop[$wid] = max(0, $maxSeats - (int) ($approvedCounts[$wid] ?? 0));
+                    }
+
+                    foreach ($registrations as $registration) {
+                        if ($registration->status !== 'pending') {
+                            $skipped++;
+                            continue;
+                        }
+
+                        $wid = (int) ($registration->workshop_id ?? 0);
+                        $remaining = $remainingByWorkshop[$wid] ?? null;
+                        if ($remaining !== null && $remaining <= 0) {
+                            $skipped++;
+                            continue;
+                        }
+
+                        $registration->update([
+                            'status' => 'approved',
+                            'approved_at' => now(),
+                        ]);
+
+                        if ($remaining !== null) {
+                            $remainingByWorkshop[$wid] = max(0, $remaining - 1);
+                        }
+
+                        if (app()->isLocal()) {
+                            \App\Jobs\RegistrationCreated::dispatchSync($registration);
+                        } else {
+                            \App\Jobs\RegistrationCreated::dispatch($registration);
+                        }
+
+                        $done++;
+                    }
+
+                    return;
+                }
+
+                if ($action === 'checkin') {
+                    foreach ($registrations as $registration) {
+                        if ($registration->status !== 'approved' || $registration->checked_in_at) {
+                            $skipped++;
+                            continue;
+                        }
+
+                        $registration->update([
+                            'checked_in_at' => now(),
+                            'checked_in_by' => $adminName,
+                        ]);
+
+                        SendWebhookJob::dispatch($registration, null, 'registration.checked_in');
+                        $done++;
+                    }
+                    return;
+                }
+
+                if ($action === 'uncheckin') {
+                    foreach ($registrations as $registration) {
+                        if ($registration->status !== 'approved' || !$registration->checked_in_at) {
+                            $skipped++;
+                            continue;
+                        }
+
+                        $registration->update([
+                            'checked_in_at' => null,
+                            'checked_in_by' => null,
+                        ]);
+
+                        $done++;
+                    }
+                    return;
+                }
+
+                if ($action === 'resend_webhook') {
+                    foreach ($registrations as $registration) {
+                        if ($registration->webhook_sent_at && $registration->webhook_sent_at->gt(now()->subMinute())) {
+                            $skipped++;
+                            continue;
+                        }
+
+                        $event = 'registration.pending';
+                        if ($registration->status === 'approved') {
+                            $event = $registration->checked_in_at ? 'registration.checked_in' : 'registration.approved';
+                        }
+
+                        SendWebhookJob::dispatch($registration, null, $event);
+                        $done++;
+                    }
+                    return;
+                }
+
+                if ($action === 'delete') {
+                    foreach ($registrations as $registration) {
+                        $registration->delete();
+                        $done++;
+                    }
+                    return;
+                }
+            });
+        } catch (\Exception $e) {
+            $errors++;
+            Log::error("Bulk action failed ({$action}): " . $e->getMessage());
+        }
+
+        $label = match ($action) {
+            'approve' => 'Approve',
+            'checkin' => 'Check-in',
+            'uncheckin' => 'Undo check-in',
+            'resend_webhook' => 'Resend webhook',
+            'delete' => 'Delete',
+            default => 'Bulk action',
+        };
+
+        if ($errors > 0) {
+            return redirect()->to($redirectUrl)->with('error', "{$label} failed. Please try again.");
+        }
+
+        return redirect()->to($redirectUrl)->with('success', "{$label} complete. Done: {$done}. Skipped: {$skipped}.");
+    }
+
     public function liveRegistrations(Request $request)
     {
         $validated = $request->validate([

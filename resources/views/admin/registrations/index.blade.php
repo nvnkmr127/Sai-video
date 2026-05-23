@@ -90,11 +90,31 @@
 
 <!-- Data Table -->
 <div class="content-card">
-    <div class="p-4 d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25">
-        <h5 class="fw-bold mb-0">Attendee List</h5>
-        <a href="{{ route('admin.registrations.export', request()->all()) }}" class="btn btn-sm btn-outline-success">
-            <i class="bi bi-download me-2"></i> Export to CSV
-        </a>
+    <div class="p-4 d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 border-bottom border-secondary border-opacity-25">
+        <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
+            <h5 class="fw-bold mb-0">Attendee List</h5>
+            <div class="small text-muted">
+                <span id="bulkSelectedCount">0</span> selected
+            </div>
+        </div>
+        <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 w-100 w-lg-auto">
+            <form id="bulkActionsForm" method="POST" action="{{ route('admin.registrations.bulk') }}" class="d-flex flex-column flex-sm-row gap-2 w-100 w-lg-auto">
+                @csrf
+                <input type="hidden" name="redirect" value="{{ url()->full() }}">
+                <select id="bulkAction" name="action" class="form-select form-select-sm border-secondary bg-transparent" required>
+                    <option value="" selected disabled>Bulk action...</option>
+                    <option value="approve">Approve</option>
+                    <option value="checkin">Mark Checked-in</option>
+                    <option value="uncheckin">Undo Check-in</option>
+                    <option value="resend_webhook">Resend Webhook</option>
+                    <option value="delete">Delete</option>
+                </select>
+                <button id="bulkApplyBtn" type="submit" class="btn btn-sm btn-primary" disabled>Apply</button>
+            </form>
+            <a href="{{ route('admin.registrations.export', request()->all()) }}" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-download me-2"></i> Export to CSV
+            </a>
+        </div>
     </div>
     <div class="d-block d-md-none p-3">
         @forelse($registrations as $reg)
@@ -109,22 +129,25 @@
                             <div class="small text-muted text-break">{{ $reg->phone }}</div>
                         </div>
                     </div>
-                    <div class="flex-shrink-0" data-role="status">
-                        @if($reg->status === 'approved')
-                            @if($reg->checked_in_at)
-                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">
-                                    <i class="bi bi-check2-all me-1"></i> Checked In
-                                </span>
+                    <div class="flex-shrink-0 d-flex align-items-start gap-2">
+                        <input class="form-check-input mt-1" type="checkbox" data-bulk-id="{{ $reg->id }}" aria-label="Select {{ $reg->full_name }}">
+                        <div data-role="status">
+                            @if($reg->status === 'approved')
+                                @if($reg->checked_in_at)
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">
+                                        <i class="bi bi-check2-all me-1"></i> Checked In
+                                    </span>
+                                @else
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3">
+                                        <i class="bi bi-patch-check me-1"></i> Approved
+                                    </span>
+                                @endif
                             @else
-                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3">
-                                    <i class="bi bi-patch-check me-1"></i> Approved
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3">
+                                    <i class="bi bi-hourglass-split me-1"></i> Waiting
                                 </span>
                             @endif
-                        @else
-                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3">
-                                <i class="bi bi-hourglass-split me-1"></i> Waiting
-                            </span>
-                        @endif
+                        </div>
                     </div>
                 </div>
 
@@ -167,7 +190,10 @@
         <table class="table table-hover align-middle">
             <thead>
                 <tr>
-                    <th class="ps-4">Attendee</th>
+                    <th class="ps-4" style="width: 40px;">
+                        <input id="bulkSelectAll" class="form-check-input" type="checkbox" aria-label="Select all">
+                    </th>
+                    <th>Attendee</th>
                     <th>Phone</th>
                     <th>Registered</th>
                     <th>Status</th>
@@ -178,6 +204,9 @@
                 @forelse($registrations as $reg)
                     <tr data-registration-id="{{ $reg->id }}">
                         <td class="ps-4">
+                            <input class="form-check-input" type="checkbox" data-bulk-id="{{ $reg->id }}" aria-label="Select {{ $reg->full_name }}">
+                        </td>
+                        <td>
                             <div class="d-flex align-items-center gap-3">
                                 <div class="avatar" style="width: 32px; height: 32px; font-size: 0.8rem;">{{ substr($reg->full_name, 0, 1) }}</div>
                                 <div>
@@ -186,7 +215,6 @@
                                     </a>
                                 </div>
                             </div>
-                        </td>
                         <td class="small text-muted">{{ $reg->phone }}</td>
                         <td>
                             <div class="small" data-role="created-at">{{ $reg->created_at->format('M d, H:i') }}</div>
@@ -252,6 +280,88 @@
 
 <script>
     (function () {
+        const bulkForm = document.getElementById('bulkActionsForm');
+        const bulkAction = document.getElementById('bulkAction');
+        const bulkApplyBtn = document.getElementById('bulkApplyBtn');
+        const bulkSelectedCount = document.getElementById('bulkSelectedCount');
+        const bulkSelectAll = document.getElementById('bulkSelectAll');
+
+        function getAllIds() {
+            const all = Array.from(document.querySelectorAll('input[type="checkbox"][data-bulk-id]'))
+                .map((cb) => String(cb.getAttribute('data-bulk-id') || '').trim())
+                .filter((v) => v && /^\d+$/.test(v));
+            return Array.from(new Set(all));
+        }
+
+        function getSelectedIds() {
+            const selected = Array.from(document.querySelectorAll('input[type="checkbox"][data-bulk-id]:checked'))
+                .map((cb) => String(cb.getAttribute('data-bulk-id') || '').trim())
+                .filter((v) => v && /^\d+$/.test(v));
+            return Array.from(new Set(selected));
+        }
+
+        function setAll(checked) {
+            document.querySelectorAll('input[type="checkbox"][data-bulk-id]').forEach((cb) => {
+                cb.checked = checked;
+            });
+        }
+
+        function updateBulkUi() {
+            const all = getAllIds();
+            const selected = getSelectedIds();
+
+            if (bulkSelectedCount) bulkSelectedCount.textContent = String(selected.length);
+            if (bulkApplyBtn) bulkApplyBtn.disabled = selected.length === 0 || !bulkAction?.value;
+
+            if (bulkSelectAll) {
+                bulkSelectAll.checked = all.length > 0 && selected.length === all.length;
+                bulkSelectAll.indeterminate = selected.length > 0 && selected.length < all.length;
+            }
+        }
+
+        if (bulkSelectAll) {
+            bulkSelectAll.addEventListener('change', () => {
+                setAll(bulkSelectAll.checked);
+                updateBulkUi();
+            });
+        }
+
+        document.addEventListener('change', (e) => {
+            const target = e.target;
+            if (!(target instanceof HTMLElement)) return;
+            if (target.matches('input[type="checkbox"][data-bulk-id]')) updateBulkUi();
+            if (target === bulkAction) updateBulkUi();
+        });
+
+        if (bulkForm) {
+            bulkForm.addEventListener('submit', (e) => {
+                const selected = getSelectedIds();
+                if (!selected.length) {
+                    e.preventDefault();
+                    return;
+                }
+
+                const actionValue = String(bulkAction?.value || '');
+                if (actionValue === 'delete') {
+                    if (!confirm('Delete selected registrations? This cannot be undone.')) {
+                        e.preventDefault();
+                        return;
+                    }
+                }
+
+                bulkForm.querySelectorAll('input[name="ids[]"]').forEach((el) => el.remove());
+                selected.forEach((id) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'ids[]';
+                    input.value = id;
+                    bulkForm.appendChild(input);
+                });
+            });
+        }
+
+        updateBulkUi();
+
         function getVisibleRegistrationIds() {
             const ids = Array.from(document.querySelectorAll('[data-registration-id]'))
                 .map((el) => Number(el.getAttribute('data-registration-id')))

@@ -37,8 +37,8 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label for="date" class="form-label fw-bold">Date & Time</label>
-                    <input type="datetime-local" class="form-control @error('date') is-invalid @enderror" id="date" name="date" value="{{ old('date', $workshop->date ? \Carbon\Carbon::parse($workshop->date)->format('Y-m-d\TH:i') : '') }}" required>
-                    @error('date')
+                    <input type="datetime-local" class="form-control @error('starts_at') is-invalid @enderror" id="date" name="starts_at" value="{{ old('starts_at', ($workshop->starts_at ? $workshop->starts_at->format('Y-m-d\\TH:i') : ($workshop->date ? \Carbon\Carbon::parse($workshop->date)->format('Y-m-d\\T00:00') : ''))) }}" required>
+                    @error('starts_at')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>

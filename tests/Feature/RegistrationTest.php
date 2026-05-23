@@ -8,6 +8,7 @@ use App\Models\Workshop;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -19,6 +20,7 @@ class RegistrationTest extends TestCase
     public function test_admin_autologin_route_is_registered_but_disabled_by_default()
     {
         $this->assertTrue(Route::has('admin.autologin'));
+        Config::set('app.dev_autologin_enabled', false);
         $this->get('/admin/autologin')->assertStatus(403);
     }
 
@@ -540,6 +542,72 @@ class RegistrationTest extends TestCase
         $response->assertJson(['success' => true]);
         $this->assertNull($reg->fresh()->checked_in_at);
         $this->assertNull($reg->fresh()->checked_in_by);
+    }
+
+    public function test_admin_bulk_approve()
+    {
+        $workshop = $this->createWorkshop(['max_seats' => 10]);
+        $r1 = $this->createRegistration($workshop, ['status' => 'pending']);
+        $r2 = $this->createRegistration($workshop, ['status' => 'pending']);
+
+        Queue::fake();
+        $this->loginAdmin();
+
+        $response = $this->post('/admin/registrations/bulk', [
+            'action' => 'approve',
+            'ids' => [$r1->id, $r2->id],
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('approved', $r1->fresh()->status);
+        $this->assertEquals('approved', $r2->fresh()->status);
+        Queue::assertPushed(RegistrationCreated::class, 2);
+    }
+
+    public function test_admin_bulk_checkin_and_uncheckin()
+    {
+        $admin = $this->loginAdmin();
+        $workshop = $this->createWorkshop();
+        $r1 = $this->createRegistration($workshop, ['status' => 'approved']);
+        $r2 = $this->createRegistration($workshop, ['status' => 'approved']);
+
+        Queue::fake();
+        $response = $this->post('/admin/registrations/bulk', [
+            'action' => 'checkin',
+            'ids' => [$r1->id, $r2->id],
+        ]);
+
+        $response->assertRedirect();
+        $this->assertNotNull($r1->fresh()->checked_in_at);
+        $this->assertEquals($admin->name, $r1->fresh()->checked_in_by);
+        $this->assertNotNull($r2->fresh()->checked_in_at);
+        $this->assertEquals($admin->name, $r2->fresh()->checked_in_by);
+
+        $response2 = $this->post('/admin/registrations/bulk', [
+            'action' => 'uncheckin',
+            'ids' => [$r1->id, $r2->id],
+        ]);
+        $response2->assertRedirect();
+
+        $this->assertNull($r1->fresh()->checked_in_at);
+        $this->assertNull($r2->fresh()->checked_in_at);
+    }
+
+    public function test_admin_bulk_delete()
+    {
+        $this->loginAdmin();
+        $workshop = $this->createWorkshop();
+        $r1 = $this->createRegistration($workshop);
+        $r2 = $this->createRegistration($workshop);
+
+        $response = $this->post('/admin/registrations/bulk', [
+            'action' => 'delete',
+            'ids' => [$r1->id, $r2->id],
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseMissing('registrations', ['id' => $r1->id]);
+        $this->assertDatabaseMissing('registrations', ['id' => $r2->id]);
     }
 
     public function test_webhook_approved_payload_contains_links()

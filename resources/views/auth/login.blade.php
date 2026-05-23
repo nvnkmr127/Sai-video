@@ -172,12 +172,12 @@
             
             <div class="mb-4">
                 <label for="email" class="form-label">Email Address</label>
-                <input type="email" class="form-control" id="email" name="email" value="{{ old('email', 'admin@demo.com') }}" required autofocus placeholder="name@company.com">
+                <input type="email" class="form-control" id="email" name="email" value="{{ old('email') }}" required autofocus placeholder="name@company.com">
             </div>
 
             <div class="mb-4">
                 <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" name="password" value="password123" required placeholder="••••••••">
+                <input type="password" class="form-control" id="password" name="password" required placeholder="••••••••">
             </div>
 
             <div class="mb-4 d-flex justify-content-between align-items-center">
@@ -192,12 +192,11 @@
             </button>
 
             @php
-                $devAutologinEnabled = filter_var(env('DEV_AUTOLOGIN_ENABLED', false), FILTER_VALIDATE_BOOL);
-                $allowInProduction = filter_var(env('DEV_AUTOLOGIN_ALLOW_PRODUCTION', false), FILTER_VALIDATE_BOOL);
-                $allowedIps = array_values(array_filter(array_map('trim', explode(',', (string) env('DEV_AUTOLOGIN_ALLOWED_IPS', '127.0.0.1,::1')))));
+                $devAutologinEnabled = (bool) config('app.dev_autologin_enabled');
+                $allowInProduction = (bool) config('app.dev_autologin_allow_production');
+                $allowedIps = (array) config('app.dev_autologin_allowed_ips', []);
                 $ipAllowed = !$allowedIps || in_array(request()->ip(), $allowedIps, true);
                 $showAutologin = $devAutologinEnabled
-                    && (config('app.debug') || $allowInProduction)
                     && (!app()->environment('production') || $allowInProduction)
                     && $ipAllowed;
             @endphp
@@ -209,9 +208,14 @@
                         <span class="text-muted small text-uppercase fw-bold opacity-50" style="font-size: 0.65rem;">Development</span>
                         <div class="flex-grow-1 border-top border-secondary opacity-25"></div>
                     </div>
-                    <a href="{{ route('admin.autologin') }}" class="btn btn-outline-info w-100 border-2 py-2 fw-bold" style="border-radius: 1rem;">
-                        <i class="bi bi-magic me-2"></i> Quick Autologin
-                    </a>
+                    <div class="d-grid gap-2">
+                        <a href="{{ route('admin.autologin', ['as' => 'admin']) }}" class="btn btn-outline-info w-100 border-2 py-2 fw-bold" style="border-radius: 1rem;">
+                            <i class="bi bi-magic me-2"></i> Autologin (Admin)
+                        </a>
+                        <a href="{{ route('admin.autologin', ['as' => 'desk']) }}" class="btn btn-outline-secondary w-100 border-2 py-2 fw-bold" style="border-radius: 1rem;">
+                            <i class="bi bi-qr-code-scan me-2"></i> Autologin (Desk)
+                        </a>
+                    </div>
                 </div>
             @endif
 

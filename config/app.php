@@ -105,6 +105,12 @@ return [
         ),
     ],
 
+    'dev_autologin_enabled' => (bool) env('DEV_AUTOLOGIN_ENABLED', false),
+
+    'dev_autologin_allow_production' => (bool) env('DEV_AUTOLOGIN_ALLOW_PRODUCTION', false),
+
+    'dev_autologin_allowed_ips' => array_values(array_filter(array_map('trim', explode(',', (string) env('DEV_AUTOLOGIN_ALLOWED_IPS', '127.0.0.1,::1'))))),
+
     /*
     |--------------------------------------------------------------------------
     | Maintenance Mode Driver

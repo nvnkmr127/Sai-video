@@ -181,6 +181,17 @@
             </div>
             <div class="text-muted small mb-1">Access Token</div>
             <code class="d-block bg-dark bg-opacity-50 p-2 rounded-3 border border-secondary border-opacity-25 small mb-4 text-break">{{ $registration->qr_code_token }}</code>
+
+            @php($passUrl = route('registration.success', $registration->qr_code_token))
+            <div class="d-grid gap-2 mb-4">
+                <a href="{{ $passUrl }}" target="_blank" rel="noopener" class="btn btn-sm btn-primary">
+                    <i class="bi bi-box-arrow-up-right me-2"></i> View Pass
+                </a>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control" value="{{ $passUrl }}" readonly onclick="this.select()">
+                    <button class="btn btn-outline-secondary" type="button" id="copyPassLinkBtn">Copy</button>
+                </div>
+            </div>
             
             <div class="border-top border-secondary border-opacity-25 pt-4">
                 <div class="d-flex justify-content-between mb-2">
@@ -241,6 +252,32 @@
 </div>
 
 <script>
+const copyPassLinkBtn = document.getElementById('copyPassLinkBtn');
+if (copyPassLinkBtn) {
+    const passUrl = "{{ $passUrl }}";
+    copyPassLinkBtn.addEventListener('click', async function () {
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(passUrl);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = passUrl;
+                ta.setAttribute('readonly', 'readonly');
+                ta.style.position = 'absolute';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+            copyPassLinkBtn.textContent = 'Copied';
+            window.setTimeout(() => { copyPassLinkBtn.textContent = 'Copy'; }, 1200);
+        } catch (e) {
+            window.prompt('Copy pass link:', passUrl);
+        }
+    });
+}
+
 function bindManualCheckIn() {
     const btn = document.getElementById('manualCheckInBtn');
     if (!btn) return;

@@ -1,12 +1,113 @@
 @extends('layouts.app')
 
+@push('head')
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-lowest": "#060d20",
+                        "on-primary-container": "#dcdfff",
+                        "tertiary-fixed": "#4cf9fc",
+                        "inverse-surface": "#dbe2fd",
+                        "inverse-on-surface": "#283044",
+                        "on-secondary-fixed-variant": "#810080",
+                        "surface-container-highest": "#2d3449",
+                        "qr-bg": "#ffffff",
+                        "glass-surface": "rgba(0, 0, 0, 0.2)",
+                        "error": "#ffb4ab",
+                        "primary-fixed-dim": "#bac3ff",
+                        "surface-container": "#171f33",
+                        "tertiary-container": "#006f71",
+                        "surface-variant": "#2d3449",
+                        "error-container": "#93000a",
+                        "background": "#0b1326",
+                        "inverse-primary": "#3b52ca",
+                        "on-secondary-container": "#ff91f2",
+                        "surface-dim": "#0b1326",
+                        "on-primary": "#001f8f",
+                        "surface": "#0b1326",
+                        "secondary": "#ffabf2",
+                        "surface-tint": "#bac3ff",
+                        "secondary-fixed": "#ffd7f5",
+                        "on-tertiary-container": "#49f7fa",
+                        "on-surface-variant": "#c5c5d6",
+                        "on-tertiary-fixed-variant": "#004f51",
+                        "surface-bright": "#31394e",
+                        "status-glow": "#bac3ff",
+                        "on-surface": "#ffffff",
+                        "primary-container": "#4158d0",
+                        "on-background": "#ffffff",
+                        "primary": "#bac3ff",
+                        "secondary-fixed-dim": "#ffabf2",
+                        "on-primary-fixed-variant": "#1d37b2",
+                        "primary-fixed": "#dee0ff",
+                        "on-tertiary": "#003738",
+                        "on-secondary-fixed": "#380037",
+                        "glass-border": "rgba(255, 255, 255, 0.15)",
+                        "on-error": "#690005",
+                        "surface-container-low": "#131b2e",
+                        "on-primary-fixed": "#00105b",
+                        "outline-variant": "#444654",
+                        "on-tertiary-fixed": "#002020",
+                        "surface-container-high": "#222a3e",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#09dcdf",
+                        "outline": "#8f8f9f",
+                        "tertiary": "#09dcdf",
+                        "secondary-container": "#840582"
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        lg: "1rem",
+                        xl: "1.5rem",
+                        full: "9999px"
+                    },
+                    spacing: {
+                        "container-margin": "32px",
+                        "stack-tight": "4px",
+                        "base": "8px",
+                        "gutter": "16px",
+                        "stack-loose": "32px",
+                        "card-padding": "40px"
+                    },
+                    fontFamily: {
+                        "display-lg-mobile": ["Montserrat"],
+                        "code-id": ["JetBrains Mono"],
+                        "label-uppercase": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "display-lg": ["Montserrat"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Montserrat"]
+                    },
+                    fontSize: {
+                        "display-lg-mobile": ["32px", { lineHeight: "1.2", fontWeight: "700" }],
+                        "code-id": ["14px", { lineHeight: "1", letterSpacing: "0.4em", fontWeight: "400" }],
+                        "label-uppercase": ["11px", { lineHeight: "1", letterSpacing: "0.25em", fontWeight: "600" }],
+                        "body-sm": ["14px", { lineHeight: "1.5", fontWeight: "300" }],
+                        "display-lg": ["48px", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700" }],
+                        "body-lg": ["16px", { lineHeight: "1.6", fontWeight: "400" }],
+                        "headline-md": ["22px", { lineHeight: "1.3", fontWeight: "400" }]
+                    }
+                },
+            },
+        }
+    </script>
+@endpush
+
 @section('content')
     <div class="success-page" id="successPage" data-qr-poll="{{ ($registration->status === 'approved' && !$registration->qr_code_path) ? '1' : '0' }}" data-qr-status-url="{{ route('registration.qr-status', ['token' => $registration->qr_code_token]) }}">
         <!-- Immersive Background -->
         <div class="dynamic-bg">
-            @if(!empty($siteSettings['slider_images']))
+            @if(!empty($siteSettings['success_background']))
+                <div class="bg-layer active" data-bg-url="{{ Storage::url($siteSettings['success_background']) }}"></div>
+            @elseif(!empty($siteSettings['slider_images']))
                 @foreach($siteSettings['slider_images'] as $index => $image)
-                    <div class="bg-layer {{ $index === 0 ? 'active' : '' }}" style="background-image: url('/storage/{{ $image }}')"></div>
+                    <div class="bg-layer {{ $index === 0 ? 'active' : '' }}" data-bg-url="/storage/{{ $image }}"></div>
                 @endforeach
             @else
                 <div class="bg-layer active" style="background-image: url('/images/backgrounds/bg1.png')"></div>
@@ -14,135 +115,161 @@
             @endif
             <div class="bg-overlay"></div>
         </div>
+        <div class="dots-overlay"></div>
 
         <div class="content-wrapper">
             <div class="glass-card">
-                <!-- Success Header (Tightened) -->
-                <div class="success-header">
-                    <div class="success-icon-wrap">
-                        <div class="pulse-circle"></div>
-                        <i class="bi bi-check-lg"></i>
-                    </div>
-                    <h1 class="gradient-text">Registered!</h1>
-                    <p class="status-msg text-muted">Your digital pass is ready</p>
-                </div>
+                <div class="pass-shell dark w-full max-w-[420px] flex flex-col items-center justify-center py-8 relative z-10 border-2 border-white/20 rounded-lg p-6 bg-black/40 backdrop-blur-[4px]">
+                    <div class="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/40 -translate-x-2 -translate-y-2"></div>
+                    <div class="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-white/40 translate-x-2 -translate-y-2"></div>
+                    <div class="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-white/40 -translate-x-2 translate-y-2"></div>
+                    <div class="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/40 translate-x-2 translate-y-2"></div>
 
-                <!-- Pass Design (Enhanced & Larger) -->
-                <div class="pass-container">
-                    <div class="pass-top">
-                        <div class="workshop-meta">
-                            <span class="category-tag">OFFICIAL ENTRY PASS</span>
-                            <h2 class="pass-workshop-title">{{ $registration->workshop->title }}</h2>
+                    <div class="w-full flex justify-between items-center mb-8 px-2 font-code-id text-[10px] tracking-widest text-white/50">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+                            REC 00:24:59:12
                         </div>
+                        <div>ISO 400</div>
+                        <div>4K 24FPS</div>
+                    </div>
 
-                        <div class="pass-qr-section top-qr">
-                            @if($registration->status === 'approved')
-                                <div class="qr-glow-wrap">
-                                    <div class="qr-container">
-                                        @if($registration->qr_code_path)
-                                            <img src="/storage/{{ $registration->qr_code_path }}" alt="Pass QR" id="qr-image" class="qr-img">
-                                        @else
-                                            <div class="qr-placeholder" id="qr-spinner">
-                                                <div class="spinner-custom"></div>
-                                                <span>GENERATING...</span>
-                                            </div>
-                                            <img id="qr-image" class="qr-img" style="display: none;">
-                                        @endif
+                    <div class="text-center mb-8">
+                        @if($registration->status === 'approved')
+                            <p class="font-code-id text-[10px] text-white/40 tracking-[0.4em] mb-2 uppercase">Production Pass</p>
+                        @else
+                            <p class="font-code-id text-[10px] text-white/40 tracking-[0.4em] mb-2 uppercase">STATUS: WAITING LIST</p>
+                        @endif
+                        <h1 class="font-display-lg-mobile text-[22px] text-white font-bold tracking-tighter uppercase leading-none">
+                            {{ $registration->workshop->title }}<br><span class="text-primary">Workshop</span>
+                        </h1>
+                    </div>
+
+                    <div class="relative mb-8 group w-full flex flex-col items-center">
+                        @if($registration->status === 'approved')
+                            <div class="qr-wrapper bg-white/5 p-2 rounded-lg relative overflow-hidden transition-transform duration-500 group-hover:scale-[1.02]">
+                                <div class="absolute top-0 left-0 w-full h-[2px] bg-primary/40 animate-[scan_2s_linear_infinite] pointer-events-none z-10"></div>
+
+                                @if($registration->qr_code_path)
+                                    <img src="/storage/{{ $registration->qr_code_path }}" alt="Pass QR Code" id="qr-image" class="w-48 h-48 block relative z-0 grayscale">
+                                @else
+                                    <div id="qr-spinner" class="w-48 h-48 flex flex-col items-center justify-center gap-3 text-white/70 font-code-id text-[10px] tracking-widest">
+                                        <span class="spinner-custom"></span>
+                                        GENERATING...
+                                    </div>
+                                    <img id="qr-image" alt="Pass QR Code" class="w-48 h-48 block relative z-0 grayscale" style="display: none;">
+                                @endif
+                            </div>
+                            <p class="font-code-id text-[10px] text-center mt-3 text-white/40 tracking-[0.5em]">UID: {{ strtoupper($registration->qr_code_token) }}</p>
+                        @else
+                            <div class="flex flex-col items-center justify-center py-10 text-center w-full">
+                                <div class="mb-6 relative">
+                                    <div class="w-24 h-24 rounded-full border-4 border-amber-500/30 flex items-center justify-center relative">
+                                        <div class="w-20 h-20 rounded-full border-2 border-amber-500 flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-amber-500 text-4xl">shield_person</span>
+                                        </div>
+                                        <div class="absolute inset-0 rounded-full border-4 border-amber-500/10 animate-ping"></div>
                                     </div>
                                 </div>
-                                <div class="token-display">
-                                    <span class="token-label">PASS ID</span>
-                                    <span class="token-code">{{ $registration->qr_code_token }}</span>
-                                </div>
-                            @else
-                                <div class="pending-visual-wrap">
-                                    <div class="status-ring-container">
-                                        <div class="status-ring">
-                                            <div class="ring-pulse"></div>
-                                            <div class="ring-core">
-                                                <i class="bi bi-shield-lock"></i>
-                                            </div>
-                                        </div>
-                                        </div>
-                                        <div class="status-content mt-4">
-                                            <h3 class="premium-status-title">Awaiting Approval</h3>
-                                            <p class="premium-status-desc">Your registration is being verified by our team. Your entry pass will appear here
-                                                once approved.</p>
-                                        </div>
-                                        <div class="pending-badge premium mt-3">
-                                            <span class="pulse-dot"></span> WAITING FOR APPROVAL
-                                        </div>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-
-                    <div class="pass-divider">
-                        <div class="cutout-left"></div>
-                        <div class="pass-line"></div>
-                        <div class="cutout-right"></div>
-                    </div>
-
-                    <div class="pass-bottom">
-
-                        <div class="attendee-details">
-                            <div class="detail-row">
-                                <div class="detail-group">
-                                    <label>ATTENDEE</label>
-                                    <span class="detail-value">{{ $registration->full_name }}</span>
-                                </div>
-                                <div class="detail-group text-end">
-                                    <label>DATE</label>
-                                    <span class="detail-value">{{ $registration->workshop->date->format('M d, Y') }}</span>
+                                <h2 class="font-display-lg-mobile text-2xl font-bold text-white mb-4 tracking-tight">Awaiting Approval</h2>
+                                <p class="font-body-sm text-white/60 max-w-[280px] leading-relaxed mb-6">Your registration is being verified by our team. Your entry pass will appear here once approved.</p>
+                                <div class="inline-flex items-center gap-2 bg-black/60 px-4 py-1.5 rounded-full border border-white/10">
+                                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                    <span class="font-code-id text-[10px] text-white tracking-widest uppercase">Waiting for Approval</span>
                                 </div>
                             </div>
-                            <div class="detail-row mt-3">
-                                <div class="detail-group">
-                                    <label>LOCATION</label>
-                                    @if($registration->status === 'approved')
-                                        <a href="{{ $registration->workshop->location_link ?? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($registration->workshop->location) }}" target="_blank" class="detail-value location-link">
-                                            <i class="bi bi-geo-alt me-1"></i>{{ $registration->workshop->location }}
-                                        </a>
-                                    @else
-                                        <span class="detail-value">
-                                            <i class="bi bi-geo-alt me-1"></i>Hyderabad
-                                        </span>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
+                        @endif
                     </div>
-                </div>
 
-                <!-- Action Buttons -->
-                <div class="pass-actions">
-                    <button onclick="window.print()" class="btn-action secondary">
-                        <i class="bi bi-printer me-2"></i> Print Pass
-                    </button>
                     @if($registration->status === 'approved')
-                        <a href="{{ $registration->workshop->location_link ?? 'https://www.google.com/maps/dir/?api=1&destination=' . urlencode($registration->workshop->location) }}" target="_blank" class="btn-action primary">
-                            <i class="bi bi-geo-alt me-2"></i> Directions
-                        </a>
+                        <div class="w-full grid grid-cols-2 gap-6 border-t border-b border-white/10 py-6">
+                            <div class="flex flex-col gap-1">
+                                <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Attendee</span>
+                                <span class="font-code-id text-sm text-white">{{ $registration->full_name }}</span>
+                            </div>
+                            <div class="flex flex-col gap-1 text-right">
+                                <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Date</span>
+                                <span class="font-code-id text-sm text-white">{{ ($registration->workshop->starts_at ?? $registration->workshop->date)->format('d.m.Y') }}</span>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Time</span>
+                                <span class="font-code-id text-sm text-white">{{ $registration->workshop->starts_at ? $registration->workshop->starts_at->format('h:i A') : 'TBD' }}</span>
+                            </div>
+                            <div class="flex flex-col gap-1 text-right">
+                                <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Status</span>
+                                <span class="font-code-id text-sm text-white">{{ strtoupper($registration->status) }}</span>
+                            </div>
+                            <div class="flex flex-col gap-1 col-span-2">
+                                <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Location</span>
+                                <a href="{{ $registration->workshop->location_link ?? 'https://www.google.com/maps/search/?api=1&query=' . urlencode($registration->workshop->location) }}" target="_blank" class="font-code-id text-sm text-white underline decoration-white/20 underline-offset-4 hover:decoration-white/50">
+                                    {{ $registration->workshop->location }}
+                                </a>
+                            </div>
+                        </div>
+                    @else
+                        <div class="w-full grid grid-cols-2 gap-6 border-t border-b border-white/10 py-6">
+                            <div class="flex flex-col gap-1">
+                                <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Attendee</span>
+                                <span class="font-code-id text-sm text-white">{{ $registration->full_name }}</span>
+                            </div>
+                            <div class="flex flex-col gap-1 text-right">
+                                <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Date</span>
+                                <span class="font-code-id text-sm text-white">{{ ($registration->workshop->starts_at ?? $registration->workshop->date)->format('d.m.Y') }}</span>
+                            </div>
+                        </div>
                     @endif
+
+                    <div class="w-full mt-8 flex flex-col gap-3">
+                        @if($registration->status === 'approved')
+                            <button type="button" onclick="window.print()" class="w-full py-4 bg-white text-black font-code-id text-sm uppercase font-bold tracking-widest flex items-center justify-center gap-3 hover:bg-primary transition-colors rounded-lg">
+                                <span class="material-symbols-outlined">movie</span>
+                                Print Pass
+                            </button>
+                            <a href="{{ $registration->workshop->location_link ?? 'https://www.google.com/maps/dir/?api=1&destination=' . urlencode($registration->workshop->location) }}" target="_blank" class="w-full py-3 border border-white/20 text-white/60 font-code-id text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:text-white hover:border-white/30 transition-colors">
+                                <span class="material-symbols-outlined text-[16px]">directions</span>
+                                Directions
+                            </a>
+                        @else
+                            <button type="button" id="checkApprovalBtn" class="w-full py-4 bg-white text-black font-code-id text-sm uppercase font-bold tracking-widest flex items-center justify-center gap-3 hover:bg-primary transition-all rounded-lg">
+                                <span class="material-symbols-outlined">sync</span>
+                                CHECK APPROVAL STATUS
+                            </button>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <style>
-        /* Premium Glassmorphism Theme - Enhanced for Large QR */
         .success-page {
-            min-height: 100vh;
+            min-height: 100svh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem 1.5rem;
+            padding: 32px;
+            background-color: #000;
+            color: #fff;
+            overflow-x: hidden;
         }
+
+        footer { display: none; }
+        #toast-container { display: none; }
 
         .dynamic-bg {
             position: fixed;
             inset: 0;
             z-index: -1;
+        }
+
+        .dots-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            opacity: 0.1;
+            background-image: radial-gradient(circle, #ffffff 1px, transparent 1px);
+            background-size: 32px 32px;
         }
 
         .bg-layer {
@@ -159,26 +286,23 @@
         .bg-overlay {
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.6) 100%);
-            backdrop-filter: blur(8px);
+            background: radial-gradient(circle at center, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.6) 100%);
+            backdrop-filter: blur(2px);
         }
 
         .content-wrapper {
             width: 100%;
-            max-width: 580px; /* Widened to fit larger QR */
+            max-width: 420px;
             z-index: 1;
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(40px) saturate(180%);
-            -webkit-backdrop-filter: blur(40px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            border-radius: 3rem;
-            padding: 2.5rem 2rem; /* Reduced padding to remove empty space */
-            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.15);
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            box-shadow: none;
             animation: cardAppear 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-            text-align: center;
         }
 
         @keyframes cardAppear {
@@ -319,6 +443,7 @@
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
         .token-display {
             background: #f8f8f8;
@@ -562,25 +687,25 @@
         }
 
         @media (max-width: 600px) {
-            .glass-card { padding: 1.5rem; border-radius: 2rem; }
-            .qr-container { width: 100%; height: auto; aspect-ratio: 1/1; }
-            .detail-row { flex-direction: column; gap: 1rem; }
-            .detail-group.text-end { text-align: left !important; }
-            .pass-actions { flex-direction: column; }
+            .success-page { padding: 24px 16px; }
         }
 
         @media print {
-            .dynamic-bg, .success-header, .pass-actions { display: none; }
-            body { background: white; padding: 0; }
-            .success-page { display: block; padding: 0; }
-            .glass-card { background: none; box-shadow: none; border: none; padding: 0; }
-            .pass-container { border: 1px solid #eee; width: 100%; max-width: 500px; margin: 0 auto; }
+            .dynamic-bg, .dots-overlay { display: none !important; }
+            body { background: white !important; padding: 0 !important; color: #000 !important; }
+            .success-page { display: block; padding: 0 !important; background: transparent !important; }
         }
     </style>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const layers = document.querySelectorAll('.bg-layer');
+        layers.forEach(layer => {
+            const bg = layer.getAttribute('data-bg-url');
+            if (bg) {
+                layer.style.backgroundImage = `url('${bg}')`;
+            }
+        });
         if (layers.length > 1) {
             let current = 0;
             setInterval(() => {
@@ -593,6 +718,7 @@
         const root = document.getElementById('successPage');
         const shouldPollQr = root?.getAttribute('data-qr-poll') === '1';
         const qrStatusUrl = root?.getAttribute('data-qr-status-url');
+        const checkApprovalBtn = document.getElementById('checkApprovalBtn');
 
         if (shouldPollQr && qrStatusUrl) {
             const pollForQr = () => {
@@ -615,7 +741,35 @@
                 .catch(() => setTimeout(pollForQr, 5000));
             };
             setTimeout(pollForQr, 2000);
+
+        if (checkApprovalBtn && qrStatusUrl) {
+            checkApprovalBtn.addEventListener('click', () => {
+                if (checkApprovalBtn.disabled) return;
+
+                const original = checkApprovalBtn.innerHTML;
+                checkApprovalBtn.disabled = true;
+                checkApprovalBtn.innerHTML = '<span class="material-symbols-outlined">progress_activity</span> CHECKING...';
+
+                fetch(qrStatusUrl, { headers: { 'Accept': 'application/json' } })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data?.status === 'approved') {
+                            window.location.reload();
+                            return;
+                        }
+
+                        checkApprovalBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> STILL PENDING';
+                        setTimeout(() => {
+                            checkApprovalBtn.disabled = false;
+                            checkApprovalBtn.innerHTML = original;
+                        }, 1500);
+                    })
+                    .catch(() => {
+                        checkApprovalBtn.disabled = false;
+                        checkApprovalBtn.innerHTML = original;
+                    });
+            });
+        }
         }
     });
     </script>
-@endsection

@@ -34,8 +34,12 @@
                             <div class="small text-muted">{{ Str::limit($workshop->description, 50) }}</div>
                         </td>
                         <td>
-                            <div class="small fw-semibold">{{ \Carbon\Carbon::parse($workshop->date)->format('M d, Y') }}</div>
-                            <div class="small text-muted">{{ \Carbon\Carbon::parse($workshop->date)->format('H:i') }}</div>
+                            <div class="small fw-semibold">{{ ($workshop->starts_at ?? \Carbon\Carbon::parse($workshop->date))->format('M d, Y') }}</div>
+                            @if($workshop->starts_at)
+                                <div class="small text-muted">{{ $workshop->starts_at->format('h:i A') }}</div>
+                            @else
+                                <div class="small text-muted">TBD</div>
+                            @endif
                         </td>
                         <td class="small">
                             @if($workshop->location_link)

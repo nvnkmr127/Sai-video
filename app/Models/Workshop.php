@@ -14,6 +14,7 @@ class Workshop extends Model
         'title',
         'description',
         'date',
+        'starts_at',
         'location',
         'location_link',
         'max_seats',
@@ -22,6 +23,7 @@ class Workshop extends Model
 
     protected $casts = [
         'date' => 'date',
+        'starts_at' => 'datetime',
         'is_active' => 'boolean',
     ];
 

@@ -40,6 +40,7 @@ class RegistrationController extends Controller
         return [
             'logo'          => Setting::getValue('logo'),
             'slider_images' => json_decode(Setting::getValue('slider_images', '[]'), true) ?? [],
+            'success_background' => Setting::getValue('success_background'),
             'site_name'     => Setting::getValue('site_name', config('app.name', 'WorkshopPro')),
         ];
     }
@@ -526,11 +527,15 @@ class RegistrationController extends Controller
         if ($reg->qr_code_path) {
             return response()->json([
                 'ready' => true, 
+                'status' => $reg->status,
                 // Use relative path to avoid APP_URL / Mixed Content issues
                 'url'   => '/storage/' . ltrim($reg->qr_code_path, '/')
             ]);
         }
-        return response()->json(['ready' => false]);
+        return response()->json([
+            'ready' => false,
+            'status' => $reg->status,
+        ]);
     }
 
     /**

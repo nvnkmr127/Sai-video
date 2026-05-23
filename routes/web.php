@@ -45,8 +45,8 @@ Route::middleware('guest:admin')->group(function () {
     
     // Dev Autologin
     Route::get('/admin/autologin', function (Request $request) {
-        $enabled = filter_var(env('DEV_AUTOLOGIN_ENABLED', false), FILTER_VALIDATE_BOOL);
-        $allowInProduction = filter_var(env('DEV_AUTOLOGIN_ALLOW_PRODUCTION', false), FILTER_VALIDATE_BOOL);
+        $enabled = (bool) config('app.dev_autologin_enabled');
+        $allowInProduction = (bool) config('app.dev_autologin_allow_production');
 
         $isProduction = app()->environment('production');
         if ($isProduction && !$allowInProduction) {
@@ -57,26 +57,29 @@ Route::middleware('guest:admin')->group(function () {
             abort($isProduction ? 404 : 403, 'DEV_AUTOLOGIN_ENABLED must be set to true.');
         }
 
-        if (!config('app.debug') && !$allowInProduction) {
-            abort($isProduction ? 404 : 403, 'APP_DEBUG must be set to true.');
-        }
-
-        $allowedIps = array_values(array_filter(array_map('trim', explode(',', (string) env('DEV_AUTOLOGIN_ALLOWED_IPS', '127.0.0.1,::1')))));
+        $allowedIps = (array) config('app.dev_autologin_allowed_ips', []);
         if ($allowedIps && !in_array($request->ip(), $allowedIps, true)) {
             abort($isProduction ? 404 : 403, 'IP not allowed for autologin.');
         }
 
-        $email = env('DEV_AUTOLOGIN_EMAIL', 'admin@example.com');
-        $password = env('DEV_AUTOLOGIN_PASSWORD', 'password');
+        $as = (string) $request->query('as', 'admin');
+        if (!in_array($as, ['admin', 'desk'], true)) {
+            abort(400, 'Invalid autologin role.');
+        }
 
-        $user = \App\Models\User::where('is_admin', 1)->first();
+        $email = $as === 'desk' ? 'desk@example.com' : 'admin@example.com';
+        $name = $as === 'desk' ? 'Desk Scanner' : 'Admin User';
+
+        $user = \App\Models\User::where('is_admin', 1)->where('email', $email)->first();
         if (!$user) {
             $user = \App\Models\User::create([
-                'name' => 'Admin User',
+                'name' => $name,
                 'email' => $email,
-                'password' => bcrypt($password),
+                'password' => bcrypt(\Illuminate\Support\Str::random(32)),
                 'is_admin' => 1,
             ]);
+        } elseif ($user->name !== $name) {
+            $user->update(['name' => $name]);
         }
 
         \Illuminate\Support\Facades\Auth::guard('admin')->login($user);
@@ -89,6 +92,7 @@ Route::prefix('admin')->middleware(['auth:admin', 'is_admin'])->group(function (
     Route::get('/', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/registrations', [AdminController::class, 'registrations'])->name('admin.registrations.index');
     Route::post('/registrations/{id}/approve', [AdminController::class, 'approve'])->name('admin.registrations.approve');
+    Route::post('/registrations/bulk', [AdminController::class, 'bulk'])->name('admin.registrations.bulk');
     Route::get('/registrations/export', [AdminController::class, 'exportRegistrations'])->name('admin.registrations.export');
     Route::get('/registrations/{id}', [AdminController::class, 'show'])->name('admin.registrations.show');
     Route::put('/registrations/{id}', [AdminController::class, 'update'])->name('admin.registrations.update');

@@ -24,7 +24,7 @@ class WorkshopController extends Controller
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'date' => 'required|date',
+            'starts_at' => 'required|date',
             'location' => 'required|string|max:255',
             'location_link' => 'nullable|string|max:1000',
             'max_seats' => 'required|integer|min:1',
@@ -32,6 +32,7 @@ class WorkshopController extends Controller
         ]);
 
         $data['is_active'] = $request->has('is_active');
+        $data['date'] = \Carbon\Carbon::parse($data['starts_at'])->toDateString();
 
         Workshop::create($data);
 
@@ -48,7 +49,7 @@ class WorkshopController extends Controller
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'date' => 'required|date',
+            'starts_at' => 'required|date',
             'location' => 'required|string|max:255',
             'location_link' => 'nullable|string|max:1000',
             'max_seats' => 'required|integer|min:1',
@@ -56,6 +57,7 @@ class WorkshopController extends Controller
         ]);
 
         $data['is_active'] = $request->has('is_active');
+        $data['date'] = \Carbon\Carbon::parse($data['starts_at'])->toDateString();
 
         $workshop->update($data);
 
