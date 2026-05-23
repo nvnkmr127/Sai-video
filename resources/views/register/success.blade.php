@@ -181,6 +181,21 @@
                         @endif
                     </div>
 
+                    @php
+                        $workshop = $registration->workshop;
+                        $eventStartsAt = $workshop?->starts_at;
+                        if (!$eventStartsAt && $workshop) {
+                            $rawDate = (string) $workshop->getRawOriginal('date');
+                            if ($rawDate !== '' && preg_match('/\d:\d/', $rawDate)) {
+                                try {
+                                    $eventStartsAt = \Carbon\Carbon::parse($rawDate);
+                                } catch (\Exception $e) {
+                                }
+                            }
+                        }
+                        $eventDate = $eventStartsAt ?: $workshop?->date;
+                    @endphp
+
                     @if($registration->status === 'approved')
                         <div class="w-full grid grid-cols-2 gap-6 border-t border-b border-white/10 py-6">
                             <div class="flex flex-col gap-1">
@@ -189,11 +204,11 @@
                             </div>
                             <div class="flex flex-col gap-1 text-right">
                                 <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Date</span>
-                                <span class="font-code-id text-sm text-white">{{ ($registration->workshop->starts_at ?? $registration->workshop->date)->format('d.m.Y') }}</span>
+                                <span class="font-code-id text-sm text-white">{{ $eventDate?->format('d.m.Y') }}</span>
                             </div>
                             <div class="flex flex-col gap-1">
                                 <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Time</span>
-                                <span class="font-code-id text-sm text-white">{{ $registration->workshop->starts_at ? $registration->workshop->starts_at->format('h:i A') : 'TBD' }}</span>
+                                <span class="font-code-id text-sm text-white">{{ $eventStartsAt ? $eventStartsAt->format('h:i A') : 'TBD' }}</span>
                             </div>
                             <div class="flex flex-col gap-1 text-right">
                                 <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Status</span>
@@ -214,7 +229,15 @@
                             </div>
                             <div class="flex flex-col gap-1 text-right">
                                 <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Date</span>
-                                <span class="font-code-id text-sm text-white">{{ ($registration->workshop->starts_at ?? $registration->workshop->date)->format('d.m.Y') }}</span>
+                                <span class="font-code-id text-sm text-white">{{ $eventDate?->format('d.m.Y') }}</span>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Time</span>
+                                <span class="font-code-id text-sm text-white">{{ $eventStartsAt ? $eventStartsAt->format('h:i A') : 'TBD' }}</span>
+                            </div>
+                            <div class="flex flex-col gap-1 text-right">
+                                <span class="font-code-id text-[9px] text-white/40 uppercase tracking-widest">Status</span>
+                                <span class="font-code-id text-sm text-white">{{ strtoupper($registration->status) }}</span>
                             </div>
                         </div>
                     @endif
@@ -698,7 +721,6 @@
     </style>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
         const layers = document.querySelectorAll('.bg-layer');
         layers.forEach(layer => {
             const bg = layer.getAttribute('data-bg-url');
@@ -716,8 +738,8 @@
         }
 
         const root = document.getElementById('successPage');
-        const shouldPollQr = root?.getAttribute('data-qr-poll') === '1';
-        const qrStatusUrl = root?.getAttribute('data-qr-status-url');
+        const shouldPollQr = root && root.getAttribute('data-qr-poll') === '1';
+        const qrStatusUrl = root ? root.getAttribute('data-qr-status-url') : null;
         const checkApprovalBtn = document.getElementById('checkApprovalBtn');
 
         if (shouldPollQr && qrStatusUrl) {
@@ -741,6 +763,7 @@
                 .catch(() => setTimeout(pollForQr, 5000));
             };
             setTimeout(pollForQr, 2000);
+        }
 
         if (checkApprovalBtn && qrStatusUrl) {
             checkApprovalBtn.addEventListener('click', () => {
@@ -770,6 +793,4 @@
                     });
             });
         }
-        }
-    });
     </script>
