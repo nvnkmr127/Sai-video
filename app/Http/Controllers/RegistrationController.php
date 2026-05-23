@@ -98,6 +98,15 @@ class RegistrationController extends Controller
 
         // Guard: if no active workshop, redirect back with error
         if (!$workshop || !$workshop->is_active) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Registration is currently closed for this workshop.',
+                    'errors' => [
+                        'workshop_id' => ['Registration is currently closed for this workshop.'],
+                    ],
+                ], 422);
+            }
+
             return redirect()->route('registration.index')
                 ->with('error', 'Registration is currently closed for this workshop.');
         }
@@ -115,6 +124,15 @@ class RegistrationController extends Controller
             ->first();
 
         if (!$otp || $otp->expires_at < now() || !hash_equals((string) $otp->otp_hash, $this->otpHash($normalizedPhone, (string) $submittedOtp))) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'The given data was invalid.',
+                    'errors' => [
+                        'otp' => ['Invalid or expired verification code. Please request a new OTP.'],
+                    ],
+                ], 422);
+            }
+
             return back()->withInput()->withErrors(['otp' => 'Invalid or expired verification code. Please request a new OTP.']);
         }
 
@@ -136,6 +154,15 @@ class RegistrationController extends Controller
                 break;
             } catch (QueryException $e) {
                 if ($this->isUniqueViolation($e, 'registrations_workshop_normalized_phone_unique')) {
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'message' => 'The given data was invalid.',
+                            'errors' => [
+                                'phone' => ['This phone number is already registered for this workshop.'],
+                            ],
+                        ], 422);
+                    }
+
                     return back()->withInput()->withErrors([
                         'phone' => 'This phone number is already registered for this workshop.',
                     ]);
@@ -150,6 +177,15 @@ class RegistrationController extends Controller
         }
 
         if (!$registration) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Could not complete registration. Please try again.',
+                    'errors' => [
+                        'phone' => ['Could not complete registration. Please try again.'],
+                    ],
+                ], 422);
+            }
+
             return back()->withInput()->withErrors([
                 'phone' => 'Could not complete registration. Please try again.',
             ]);
@@ -165,6 +201,17 @@ class RegistrationController extends Controller
         }
 
         // DO NOT dispatch RegistrationCreated here. It will be dispatched on Approval.
+
+        $redirectUrl = route('registration.success', $registration->qr_code_token);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'redirect' => $redirectUrl,
+                'qr_code_token' => $registration->qr_code_token,
+                'registration_id' => $registration->id,
+            ]);
+        }
 
         return redirect()->route('registration.success', $registration->qr_code_token);
     }

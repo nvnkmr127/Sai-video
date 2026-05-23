@@ -76,11 +76,12 @@
                             <p>We'll use this for your event badge and certificate.</p>
                         </div>
                         <div class="input-group-custom">
-                            <input type="text" name="full_name" id="full_name" class="custom-input @error('full_name') is-invalid @enderror" placeholder="Enter your full name" value="{{ old('full_name') }}" required autofocus>
+                            <input type="text" name="full_name" id="full_name" class="custom-input @error('full_name') is-invalid @enderror" placeholder="Enter your full name" value="{{ old('full_name') }}" required minlength="2" autofocus>
                             <label for="full_name">Full Name</label>
                             @error('full_name')
                                 <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ $message }}</div>
                             @enderror
+                            <div class="field-error" id="field-error-full_name" style="display: none;"></div>
                         </div>
                         <div class="step-actions">
                             <button type="button" class="btn-next">Continue <i class="bi bi-arrow-right"></i></button>
@@ -96,11 +97,12 @@
                             <p>Please provide your <strong>WhatsApp number</strong> for updates.</p>
                         </div>
                         <div class="input-group-custom">
-                            <input type="tel" name="phone" id="phone" class="custom-input @error('phone') is-invalid @enderror" placeholder="+91" value="{{ old('phone') }}" required>
+                            <input type="tel" name="phone" id="phone" class="custom-input @error('phone') is-invalid @enderror" placeholder="+91" value="{{ old('phone') }}" required pattern="^\\+?[0-9\\s\\-]{7,20}$">
                             <label for="phone">WhatsApp Number</label>
                             @error('phone')
                                 <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ $message }}</div>
                             @enderror
+                            <div class="field-error" id="field-error-phone" style="display: none;"></div>
                         </div>
                         <div class="step-actions">
                             <button type="button" class="btn-next">Get OTP <i class="bi bi-shield-check"></i></button>
@@ -116,11 +118,12 @@
                             <p>Enter the 6-digit code sent to your WhatsApp.</p>
                         </div>
                         <div class="input-group-custom">
-                            <input type="text" name="otp" id="otp" class="custom-input otp-input @error('otp') is-invalid @enderror" placeholder="000000" maxlength="6" inputmode="numeric" required>
+                            <input type="text" name="otp" id="otp" class="custom-input otp-input @error('otp') is-invalid @enderror" placeholder="000000" maxlength="6" inputmode="numeric" required pattern="^\\d{6}$">
                             <label for="otp">Verification Code</label>
                             @error('otp')
                                 <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ $message }}</div>
                             @enderror
+                            <div class="field-error" id="field-error-otp" style="display: none;"></div>
                         </div>
                         <div id="otpTimerContainer" class="timer-display" style="display: none;">
                             <i class="bi bi-clock-history"></i> Resend code in <span id="timerValue">30</span>s
@@ -138,11 +141,12 @@
                             <p>Where should we send your workshop materials?</p>
                         </div>
                         <div class="input-group-custom">
-                            <textarea name="address" id="address" class="custom-input textarea-input @error('address') is-invalid @enderror" placeholder="Enter full address..." required>{{ old('address') }}</textarea>
+                            <textarea name="address" id="address" class="custom-input textarea-input @error('address') is-invalid @enderror" placeholder="Enter full address..." required minlength="10">{{ old('address') }}</textarea>
                             <label for="address">Full Address</label>
                             @error('address')
                                 <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ $message }}</div>
                             @enderror
+                            <div class="field-error" id="field-error-address" style="display: none;"></div>
                         </div>
                         <div class="step-actions">
                             <button type="submit" class="btn-submit">Submit Registration <i class="bi bi-send-fill"></i></button>
@@ -151,20 +155,6 @@
                 </form>
             @endif
 
-            <div class="form-navigation">
-                <button type="button" id="prevStepBtn" class="nav-btn" disabled title="Previous Step">
-                    <i class="bi bi-chevron-left"></i>
-                </button>
-                <div class="step-indicator-dots">
-                    <span class="dot active"></span>
-                    <span class="dot"></span>
-                    <span class="dot"></span>
-                    <span class="dot"></span>
-                </div>
-                <button type="button" id="nextStepBtn" class="nav-btn" title="Next Step">
-                    <i class="bi bi-chevron-right"></i>
-                </button>
-            </div>
         </div>
     </div>
 </div>
@@ -395,33 +385,6 @@
 
     .shortcut-hint { font-size: 0.85rem; color: var(--text-light); }
 
-    /* Navigation */
-    .form-navigation {
-        position: absolute;
-        bottom: 3rem; left: 4rem; right: 4rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .nav-btn {
-        width: 3.5rem; height: 3.5rem;
-        border-radius: 50%;
-        border: 2px solid #e2e8f0;
-        background: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.25rem;
-        cursor: pointer;
-        transition: var(--transition);
-    }
-    .nav-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); transform: scale(1.1); }
-    .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-    .step-indicator-dots { display: flex; gap: 0.75rem; }
-    .dot { width: 8px; height: 8px; background: #e2e8f0; border-radius: 50%; transition: var(--transition); }
-    .dot.active { width: 24px; background: var(--accent); border-radius: 4px; }
-
     /* Empty State */
     .empty-state { text-align: center; max-width: 400px; margin: 0 auto; }
     .icon-circle {
@@ -449,11 +412,10 @@
         .step-header h3 { font-size: 1.75rem; }
         .input-group-custom { margin-bottom: 2rem; }
         .custom-input { font-size: 1.5rem; padding: 1.25rem 0 0.5rem; }
-        .form-navigation { position: fixed; bottom: 0; left: 0; width: 100%; padding: 1.25rem 1.5rem; background: white; border-top: 1px solid #e2e8f0; z-index: 1002; }
     }
 
     @media (max-width: 576px) {
-        .visual-pane { height: 25vh; min-height: 190px; }
+        .visual-pane { height: 25vh; min-height: 380px; }
         .step-header { margin-bottom: 1.5rem; }
         .step-header h3 { font-size: 1.5rem; }
         .step-header p { font-size: 0.95rem; }
@@ -467,10 +429,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const steps = document.querySelectorAll('.step-item');
-    const dots = document.querySelectorAll('.dot');
     const progressBar = document.getElementById('progressBar');
-    const prevBtn = document.getElementById('prevStepBtn');
-    const nextBtn = document.getElementById('nextStepBtn');
+    const formEl = document.getElementById('registrationForm');
     const phoneInput = document.getElementById('phone');
     const timerValue = document.getElementById('timerValue');
     const timerContainer = document.getElementById('otpTimerContainer');
@@ -502,6 +462,41 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function setFieldError(field, message) {
+        const input = document.getElementById(field);
+        if (input) {
+            input.classList.add('is-invalid');
+            input.setAttribute('aria-invalid', 'true');
+        }
+
+        const errorEl = document.getElementById(`field-error-${field}`);
+        if (errorEl) {
+            errorEl.style.display = 'block';
+            errorEl.innerHTML = `<i class="bi bi-exclamation-circle"></i> ${message}`;
+        }
+    }
+
+    function clearFieldError(field) {
+        const input = document.getElementById(field);
+        if (input) {
+            input.classList.remove('is-invalid');
+            input.removeAttribute('aria-invalid');
+        }
+
+        const errorEl = document.getElementById(`field-error-${field}`);
+        if (errorEl) {
+            errorEl.style.display = 'none';
+            errorEl.textContent = '';
+        }
+    }
+
+    ['full_name', 'phone', 'otp', 'address'].forEach((field) => {
+        const el = document.getElementById(field);
+        if (!el) return;
+        el.addEventListener('input', () => clearFieldError(field));
+        el.addEventListener('change', () => clearFieldError(field));
+    });
+
     function updateUI() {
         steps.forEach((step, idx) => {
             step.classList.toggle('active', idx === currentStep);
@@ -511,15 +506,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        dots.forEach((dot, idx) => {
-            dot.classList.toggle('active', idx === currentStep);
-        });
-
         const progress = ((currentStep + 1) / totalSteps) * 100;
         progressBar.style.width = progress + '%';
-
-        prevBtn.disabled = currentStep === 0;
-        nextBtn.disabled = currentStep === totalSteps - 1;
     }
 
     function sendOTP() {
@@ -558,19 +546,51 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function validateCurrentStep() {
         const input = steps[currentStep].querySelector('input, textarea');
-        if (input && !input.checkValidity()) {
-            input.reportValidity();
-            return false;
+        if (input) {
+            clearFieldError(input.id);
+            if (!input.checkValidity()) {
+                setFieldError(input.id, input.validationMessage || 'Please enter a valid value.');
+                input.focus();
+                return false;
+            }
+        }
+
+        if (currentStep === 2) {
+            const otpInput = document.getElementById('otp');
+            if (otpInput) {
+                clearFieldError('otp');
+                const value = String(otpInput.value || '').trim();
+                if (!/^\d{6}$/.test(value)) {
+                    setFieldError('otp', 'Please enter the 6-digit code.');
+                    otpInput.focus();
+                    return false;
+                }
+            }
         }
         
+        if (currentStep === 3) {
+            const addressInput = document.getElementById('address');
+            if (addressInput) {
+                clearFieldError('address');
+                const value = String(addressInput.value || '').trim();
+                if (value.length < 10) {
+                    setFieldError('address', 'Please enter your full mailing address (at least 10 characters).');
+                    addressInput.focus();
+                    return false;
+                }
+            }
+        }
+
         // Special logic for phone -> OTP (Step 2, index 1)
         if (currentStep === 1) {
-            if (phoneInput.value.length < 10) {
-                showToast("Invalid Phone", "Please enter a valid WhatsApp number", "error");
+            clearFieldError('phone');
+            const rawPhone = String(phoneInput?.value || '').trim();
+            if (rawPhone.length < 7) {
+                setFieldError('phone', 'Please enter a valid WhatsApp number.');
+                phoneInput?.focus();
                 return false;
             }
 
-            // Check for duplicate BEFORE sending OTP
             try {
                 const btn = steps[currentStep].querySelector('.btn-next');
                 const originalText = btn.innerHTML;
@@ -585,37 +605,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         "Accept": "application/json"
                     },
                     body: JSON.stringify({ 
-                        phone: phoneInput.value,
+                        phone: rawPhone,
                         workshop_id: "{{ $workshop?->id }}"
                     })
                 });
                 
                 const data = await response.json();
                 
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+
                 if (data.exists) {
-                    showToast("Already Registered", data.message, "error");
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
+                    setFieldError('phone', data.message || 'This number is already registered.');
+                    phoneInput?.focus();
                     return false;
                 }
 
-                // If not duplicate, send OTP and proceed
                 sendOTP();
-                btn.disabled = false;
-                btn.innerHTML = originalText;
             } catch (err) {
-                console.error("Duplicate check error:", err);
-                // Fallback: allow if check fails? Or block? Let's block and show error.
-                showToast("System Error", "Unable to verify number. Please try again.", "error");
-                return false;
-            }
-        }
-
-        // Special logic for OTP verification step (index 2)
-        if (currentStep === 2) {
-            const otpInput = document.getElementById('otp');
-            if (otpInput.value.length < 4) {
-                showToast("Incomplete OTP", "Please enter the 6-digit code", "error");
+                setFieldError('phone', 'Unable to verify number. Please try again.');
                 return false;
             }
         }
@@ -642,8 +650,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Event Listeners
     document.querySelectorAll('.btn-next').forEach(btn => btn.addEventListener('click', goToNext));
-    nextBtn.addEventListener('click', goToNext);
-    prevBtn.addEventListener('click', goToPrev);
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -656,6 +662,108 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    async function validateAllBeforeSubmit() {
+        const order = ['full_name', 'phone', 'otp', 'address'];
+        for (const field of order) {
+            const el = document.getElementById(field);
+            if (!el) continue;
+            clearFieldError(field);
+
+            if (!el.checkValidity()) {
+                setFieldError(field, el.validationMessage || 'Please enter a valid value.');
+                currentStep = errorFields[field] ?? 0;
+                updateUI();
+                el.focus();
+                return false;
+            }
+        }
+
+        const otp = String(document.getElementById('otp')?.value || '').trim();
+        if (!/^\d{6}$/.test(otp)) {
+            setFieldError('otp', 'Please enter the 6-digit code.');
+            currentStep = 2;
+            updateUI();
+            document.getElementById('otp')?.focus();
+            return false;
+        }
+
+        const address = String(document.getElementById('address')?.value || '').trim();
+        if (address.length < 10) {
+            setFieldError('address', 'Please enter your full mailing address (at least 10 characters).');
+            currentStep = 3;
+            updateUI();
+            document.getElementById('address')?.focus();
+            return false;
+        }
+
+        return true;
+    }
+
+    async function submitViaAjax() {
+        if (!formEl) return;
+        const ok = await validateAllBeforeSubmit();
+        if (!ok) return;
+
+        const btn = formEl.querySelector('.btn-submit');
+        const originalText = btn?.innerHTML;
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Submitting...';
+        }
+
+        try {
+            const res = await fetch(formEl.action, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                },
+                body: new FormData(formEl),
+            });
+
+            const json = await res.json().catch(() => null);
+
+            if (res.ok && json?.redirect) {
+                window.location.href = json.redirect;
+                return;
+            }
+
+            if (res.status === 422 && json?.errors) {
+                const entries = Object.entries(json.errors);
+                for (const [field, messages] of entries) {
+                    if (['full_name', 'phone', 'otp', 'address'].includes(field)) {
+                        const msg = Array.isArray(messages) ? messages[0] : String(messages);
+                        setFieldError(field, msg);
+                    }
+                }
+
+                const firstField = entries.find(([field]) => ['full_name', 'phone', 'otp', 'address'].includes(field))?.[0];
+                if (firstField) {
+                    currentStep = errorFields[firstField] ?? 0;
+                    updateUI();
+                    document.getElementById(firstField)?.focus();
+                }
+                return;
+            }
+
+            setFieldError('address', (json && (json.message || json.error)) ? (json.message || json.error) : 'Submission failed. Please try again.');
+        } catch (e) {
+            setFieldError('address', 'Submission failed. Please try again.');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+    }
+
+    if (formEl) {
+        formEl.addEventListener('submit', function (e) {
+            e.preventDefault();
+            submitViaAjax();
+        });
+    }
 
     // Background Slider
     const slides = document.querySelectorAll('.slider-slide');

@@ -45,6 +45,97 @@ class RegistrationTest extends TestCase
         $response->assertSee('Registration Closed');
     }
 
+    public function test_register_ajax_submit_blocks_when_required_fields_missing()
+    {
+        $workshop = $this->createWorkshop();
+
+        $response = $this->postJson('/register', [
+            'workshop_id' => $workshop->id,
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['full_name', 'phone', 'otp', 'address']);
+    }
+
+    public function test_register_ajax_submit_duplicate_phone_shows_error_on_phone_field()
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $workshop = $this->createWorkshop();
+
+        $phone = '+919876543210';
+        $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
+        $normalizedPhone = preg_replace('/\D+/', '', (string) $normalizedPhone);
+
+        $this->createRegistration($workshop, [
+            'phone' => $phone,
+            'normalized_phone' => $normalizedPhone,
+            'status' => 'pending',
+        ]);
+
+        $otp = '123456';
+        $otpHash = hash_hmac('sha256', $normalizedPhone . '|' . $otp, (string) config('app.key'));
+
+        DB::table('otp_codes')->insert([
+            'normalized_phone' => $normalizedPhone,
+            'otp_hash' => $otpHash,
+            'expires_at' => now()->addMinutes(10),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->postJson('/register', [
+            'workshop_id' => $workshop->id,
+            'full_name' => 'John Doe',
+            'phone' => $phone,
+            'otp' => $otp,
+            'address' => '123 Test Street, Sample City',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['phone']);
+    }
+
+    public function test_register_ajax_submit_success_returns_redirect()
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $workshop = $this->createWorkshop();
+
+        $phone = '+919876543210';
+        $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
+        $normalizedPhone = preg_replace('/\D+/', '', (string) $normalizedPhone);
+
+        $otp = '123456';
+        $otpHash = hash_hmac('sha256', $normalizedPhone . '|' . $otp, (string) config('app.key'));
+
+        DB::table('otp_codes')->insert([
+            'normalized_phone' => $normalizedPhone,
+            'otp_hash' => $otpHash,
+            'expires_at' => now()->addMinutes(10),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->postJson('/register', [
+            'workshop_id' => $workshop->id,
+            'full_name' => 'John Doe',
+            'phone' => $phone,
+            'otp' => $otp,
+            'address' => '123 Test Street, Sample City',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+        ]);
+        $this->assertNotEmpty($response->json('redirect'));
+
+        $this->assertDatabaseHas('registrations', [
+            'workshop_id' => $workshop->id,
+            'normalized_phone' => $normalizedPhone,
+            'status' => 'pending',
+        ]);
+    }
+
     public function test_otp_send_returns_success()
     {
         $phone = '+919876543210';
