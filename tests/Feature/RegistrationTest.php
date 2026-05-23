@@ -148,6 +148,58 @@ class RegistrationTest extends TestCase
         $this->assertTrue(DB::table('otp_codes')->where('normalized_phone', $normalizedPhone)->exists());
     }
 
+    public function test_otp_verify_returns_error_for_wrong_code()
+    {
+        $phone = '+919876543210';
+        $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
+        $normalizedPhone = preg_replace('/\D+/', '', (string) $normalizedPhone);
+
+        $otp = '123456';
+        $otpHash = hash_hmac('sha256', $normalizedPhone . '|' . $otp, (string) config('app.key'));
+
+        DB::table('otp_codes')->insert([
+            'normalized_phone' => $normalizedPhone,
+            'otp_hash' => $otpHash,
+            'expires_at' => now()->addMinutes(10),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->postJson('/otp/verify', [
+            'phone' => $phone,
+            'otp' => '000000',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['otp']);
+    }
+
+    public function test_otp_verify_returns_success_for_valid_code()
+    {
+        $phone = '+919876543210';
+        $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
+        $normalizedPhone = preg_replace('/\D+/', '', (string) $normalizedPhone);
+
+        $otp = '123456';
+        $otpHash = hash_hmac('sha256', $normalizedPhone . '|' . $otp, (string) config('app.key'));
+
+        DB::table('otp_codes')->insert([
+            'normalized_phone' => $normalizedPhone,
+            'otp_hash' => $otpHash,
+            'expires_at' => now()->addMinutes(10),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->postJson('/otp/verify', [
+            'phone' => $phone,
+            'otp' => $otp,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson(['success' => true]);
+    }
+
     public function test_otp_send_returns_error_when_delivery_not_configured_in_production()
     {
         app()->detectEnvironment(fn () => 'production');

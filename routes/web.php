@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\WorkshopController;
 use App\Http\Controllers\Admin\WebhookConfigController;
 use App\Http\Controllers\Admin\SettingsController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // Public Registration
@@ -15,6 +16,9 @@ Route::post('/register', [RegistrationController::class, 'submit'])
 
 Route::post('/otp/send', [RegistrationController::class, 'sendOtp'])
     ->name('registration.otp.send');
+
+Route::post('/otp/verify', [RegistrationController::class, 'verifyOtp'])
+    ->name('registration.otp.verify');
 
 Route::post('/registration/check-duplicate', [RegistrationController::class, 'checkDuplicate'])
     ->middleware('throttle:10,1')
@@ -40,7 +44,7 @@ Route::middleware('guest:admin')->group(function () {
         ->middleware('throttle:5,1');
     
     // Dev Autologin
-    Route::get('/admin/autologin', function () {
+    Route::get('/admin/autologin', function (Request $request) {
         $enabled = filter_var(env('DEV_AUTOLOGIN_ENABLED', false), FILTER_VALIDATE_BOOL);
         $allowInProduction = filter_var(env('DEV_AUTOLOGIN_ALLOW_PRODUCTION', false), FILTER_VALIDATE_BOOL);
 
@@ -58,7 +62,7 @@ Route::middleware('guest:admin')->group(function () {
         }
 
         $allowedIps = array_values(array_filter(array_map('trim', explode(',', (string) env('DEV_AUTOLOGIN_ALLOWED_IPS', '127.0.0.1,::1')))));
-        if ($allowedIps && !in_array(request()->ip(), $allowedIps, true)) {
+        if ($allowedIps && !in_array($request->ip(), $allowedIps, true)) {
             abort($isProduction ? 404 : 403, 'IP not allowed for autologin.');
         }
 

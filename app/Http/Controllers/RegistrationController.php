@@ -348,6 +348,34 @@ class RegistrationController extends Controller
         ]);
     }
 
+    public function verifyOtp(Request $request)
+    {
+        $validated = $request->validate([
+            'phone' => 'required|string',
+            'otp' => 'required|digits:6',
+        ]);
+
+        $normalizedPhone = $this->normalizePhone((string) $validated['phone']);
+
+        $row = DB::table('otp_codes')
+            ->where('normalized_phone', $normalizedPhone)
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$row || $row->expires_at < now() || !hash_equals((string) $row->otp_hash, $this->otpHash($normalizedPhone, (string) $validated['otp']))) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => [
+                    'otp' => ['Invalid or expired verification code. Please request a new OTP.'],
+                ],
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+        ]);
+    }
+
     /**
      * Success page — shown after registration.
      */

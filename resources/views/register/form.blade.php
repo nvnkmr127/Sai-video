@@ -572,7 +572,55 @@ document.addEventListener('DOMContentLoaded', function() {
                     input.focus();
                     return false;
                 }
-                return true;
+
+                clearFieldError('otp');
+                const rawPhone = String(phoneInput?.value || '').trim();
+                const digits = rawPhone.replace(/\D+/g, '');
+                if (!digits) {
+                    setFieldError('phone', 'Please enter your WhatsApp number first.');
+                    currentStep = 1;
+                    updateUI();
+                    document.getElementById('phone')?.focus();
+                    return false;
+                }
+
+                const btn = steps[currentStep].querySelector('.btn-next');
+                const originalText = btn?.innerHTML;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Verifying...';
+                }
+
+                try {
+                    const res = await fetch("{{ route('registration.otp.verify') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({ phone: rawPhone, otp: value })
+                    });
+
+                    const json = await res.json().catch(() => null);
+
+                    if (!res.ok) {
+                        const msg = json?.errors?.otp?.[0] || json?.message || 'Invalid or expired verification code. Please request a new OTP.';
+                        setFieldError('otp', msg);
+                        input.focus();
+                        return false;
+                    }
+
+                    return true;
+                } catch (e) {
+                    setFieldError('otp', 'Unable to verify OTP right now. Please try again.');
+                    return false;
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                    }
+                }
             }
 
             clearFieldError(input.id);
