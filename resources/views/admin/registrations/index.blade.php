@@ -58,15 +58,15 @@
             <label class="form-label text-muted small">Search Attendee</label>
             <div class="input-group">
                 <span class="input-group-text bg-transparent border-end-0 border-secondary"><i class="bi bi-search text-muted"></i></span>
-                <input type="text" name="search" class="form-control border-start-0 border-secondary bg-transparent text-white" placeholder="Search by name..." value="{{ request('search') }}">
+                <input type="text" name="search" class="form-control border-start-0 border-secondary bg-transparent" placeholder="Search by name..." value="{{ request('search') }}">
             </div>
         </div>
         <div class="col-md-3">
             <label class="form-label text-muted small">Workshop</label>
-            <select name="workshop_id" class="form-select bg-transparent border-secondary text-white">
-                <option value="" class="bg-dark">All Workshops</option>
+            <select name="workshop_id" class="form-select bg-transparent border-secondary">
+                <option value="">All Workshops</option>
                 @foreach($workshops as $workshop)
-                    <option value="{{ $workshop->id }}" {{ request('workshop_id') == $workshop->id ? 'selected' : '' }} class="bg-dark">
+                    <option value="{{ $workshop->id }}" {{ request('workshop_id') == $workshop->id ? 'selected' : '' }}>
                         {{ $workshop->title }}
                     </option>
                 @endforeach
@@ -74,11 +74,11 @@
         </div>
         <div class="col-md-2">
             <label class="form-label text-muted small">Status</label>
-            <select name="status" class="form-select bg-transparent border-secondary text-white">
-                <option value="" class="bg-dark">All Status</option>
-                <option value="waiting" {{ request('status') == 'waiting' ? 'selected' : '' }} class="bg-dark">Waiting List</option>
-                <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }} class="bg-dark">Approved</option>
-                <option value="checked_in" {{ request('status') == 'checked_in' ? 'selected' : '' }} class="bg-dark">Checked In</option>
+            <select name="status" class="form-select bg-transparent border-secondary">
+                <option value="">All Status</option>
+                <option value="waiting" {{ request('status') == 'waiting' ? 'selected' : '' }}>Waiting List</option>
+                <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
+                <option value="checked_in" {{ request('status') == 'checked_in' ? 'selected' : '' }}>Checked In</option>
             </select>
         </div>
         <div class="col-md-3 d-flex align-items-end gap-2">
@@ -96,7 +96,71 @@
             <i class="bi bi-download me-2"></i> Export to CSV
         </a>
     </div>
-    <div class="table-responsive">
+    <div class="d-block d-md-none p-3">
+        @forelse($registrations as $reg)
+            <div class="content-card p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="avatar flex-shrink-0" style="width: 36px; height: 36px; font-size: 0.85rem;">{{ substr($reg->full_name, 0, 1) }}</div>
+                        <div class="overflow-hidden">
+                            <a href="{{ route('admin.registrations.show', $reg->id) }}" class="fw-bold text-decoration-none attendee-link d-block text-truncate">
+                                {{ $reg->full_name }}
+                            </a>
+                            <div class="small text-muted text-break">{{ $reg->phone }}</div>
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0">
+                        @if($reg->status === 'approved')
+                            @if($reg->checked_in_at)
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">
+                                    <i class="bi bi-check2-all me-1"></i> Checked In
+                                </span>
+                            @else
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3">
+                                    <i class="bi bi-patch-check me-1"></i> Approved
+                                </span>
+                            @endif
+                        @else
+                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3">
+                                <i class="bi bi-hourglass-split me-1"></i> Waiting
+                            </span>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="mt-3 d-flex justify-content-between align-items-center">
+                    <div class="small text-muted">
+                        <i class="bi bi-clock me-1"></i> {{ $reg->created_at->format('M d, H:i') }}
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        @if($reg->status === 'pending')
+                            <form method="POST" action="{{ route('admin.registrations.approve', $reg->id) }}">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                            </form>
+                        @endif
+                        <a href="{{ route('admin.registrations.show', $reg->id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                        <form method="POST"
+                              action="{{ route('admin.registrations.destroy', $reg->id) }}"
+                              onsubmit="return confirm('Delete registration for {{ addslashes($reg->full_name) }}? This cannot be undone.')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-search fs-1 d-block mb-3 opacity-25"></i>
+                No registrations found matching your filters.
+            </div>
+        @endforelse
+    </div>
+    <div class="table-responsive d-none d-md-block">
         <table class="table table-hover align-middle">
             <thead>
                 <tr>
@@ -114,7 +178,9 @@
                             <div class="d-flex align-items-center gap-3">
                                 <div class="avatar" style="width: 32px; height: 32px; font-size: 0.8rem;">{{ substr($reg->full_name, 0, 1) }}</div>
                                 <div>
-                                    <div class="fw-bold">{{ $reg->full_name }}</div>
+                                    <a href="{{ route('admin.registrations.show', $reg->id) }}" class="fw-bold text-decoration-none attendee-link">
+                                        {{ $reg->full_name }}
+                                    </a>
                                 </div>
                             </div>
                         </td>
@@ -183,5 +249,7 @@
     .pagination { margin: 0; justify-content: center; }
     .page-link { background: transparent; border-color: var(--border); color: var(--text-muted); }
     .page-item.active .page-link { background: var(--primary); border-color: var(--primary); color: white; }
+    .attendee-link { color: var(--text-main); }
+    .attendee-link:hover { color: var(--primary); }
 </style>
 @endsection

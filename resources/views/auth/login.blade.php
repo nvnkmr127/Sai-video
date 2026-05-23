@@ -191,7 +191,18 @@
                 Enter Dashboard <i class="bi bi-arrow-right ms-2"></i>
             </button>
 
-            @if(app()->isLocal())
+            @php
+                $devAutologinEnabled = filter_var(env('DEV_AUTOLOGIN_ENABLED', false), FILTER_VALIDATE_BOOL);
+                $allowInProduction = filter_var(env('DEV_AUTOLOGIN_ALLOW_PRODUCTION', false), FILTER_VALIDATE_BOOL);
+                $allowedIps = array_values(array_filter(array_map('trim', explode(',', (string) env('DEV_AUTOLOGIN_ALLOWED_IPS', '127.0.0.1,::1')))));
+                $ipAllowed = !$allowedIps || in_array(request()->ip(), $allowedIps, true);
+                $showAutologin = $devAutologinEnabled
+                    && (config('app.debug') || $allowInProduction)
+                    && (!app()->environment('production') || $allowInProduction)
+                    && $ipAllowed;
+            @endphp
+
+            @if($showAutologin)
                 <div class="mt-4 text-center">
                     <div class="d-flex align-items-center gap-2 mb-3">
                         <div class="flex-grow-1 border-top border-secondary opacity-25"></div>

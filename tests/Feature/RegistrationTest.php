@@ -19,7 +19,7 @@ class RegistrationTest extends TestCase
     public function test_admin_autologin_route_is_registered_but_disabled_by_default()
     {
         $this->assertTrue(Route::has('admin.autologin'));
-        $this->get('/admin/autologin')->assertStatus(404);
+        $this->get('/admin/autologin')->assertStatus(403);
     }
 
     public function test_database_seeder_does_not_create_default_admin_in_production()
@@ -379,6 +379,24 @@ class RegistrationTest extends TestCase
         $response->assertJson(['success' => true]);
         $this->assertNotNull($reg->fresh()->checked_in_at);
         $this->assertEquals($admin->name, $reg->fresh()->checked_in_by);
+    }
+
+    public function test_admin_manual_uncheckin()
+    {
+        $this->loginAdmin();
+        $workshop = $this->createWorkshop();
+        $reg = $this->createRegistration($workshop, [
+            'status' => 'approved',
+            'checked_in_at' => now(),
+            'checked_in_by' => 'Admin',
+        ]);
+
+        $response = $this->postJson("/admin/registrations/{$reg->id}/uncheckin");
+
+        $response->assertStatus(200);
+        $response->assertJson(['success' => true]);
+        $this->assertNull($reg->fresh()->checked_in_at);
+        $this->assertNull($reg->fresh()->checked_in_by);
     }
 
     public function test_webhook_approved_payload_contains_links()

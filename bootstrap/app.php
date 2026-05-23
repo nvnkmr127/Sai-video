@@ -15,6 +15,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'is_admin' => \App\Http\Middleware\AdminMiddleware::class,
         ]);
+        $trustedProxies = env('TRUSTED_PROXIES');
+        if (is_string($trustedProxies) && $trustedProxies !== '') {
+            $at = trim($trustedProxies) === '*'
+                ? '*'
+                : array_values(array_filter(array_map('trim', explode(',', $trustedProxies))));
+            $middleware->trustProxies($at);
+        }
         // Rate limiting
         $middleware->throttleApi(); // or use default throttle
     })

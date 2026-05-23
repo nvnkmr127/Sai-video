@@ -204,6 +204,46 @@ class AdminController extends Controller
         }
     }
 
+    public function manualUncheckin($id)
+    {
+        try {
+            return DB::transaction(function () use ($id) {
+                $registration = Registration::lockForUpdate()->findOrFail($id);
+
+                if ($registration->status !== 'approved') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Attendee is not approved.',
+                    ], 403);
+                }
+
+                if (!$registration->checked_in_at) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Attendee is not checked in.',
+                    ], 409);
+                }
+
+                $registration->update([
+                    'checked_in_at' => null,
+                    'checked_in_by' => null,
+                ]);
+
+                Log::info("Manual uncheck-in by admin for: {$registration->full_name} (#{$registration->id})");
+
+                return response()->json([
+                    'success' => true,
+                ]);
+            });
+        } catch (\Exception $e) {
+            Log::error("Manual uncheck-in failed for ID {$id}: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred. Please try again.',
+            ], 500);
+        }
+    }
+
     /**
      * Re-dispatch webhook — with 60 second cooldown.
      */

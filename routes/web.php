@@ -42,13 +42,24 @@ Route::middleware('guest:admin')->group(function () {
     // Dev Autologin
     Route::get('/admin/autologin', function () {
         $enabled = filter_var(env('DEV_AUTOLOGIN_ENABLED', false), FILTER_VALIDATE_BOOL);
-        if (!app()->environment('local') || !config('app.debug') || !$enabled) {
+        $allowInProduction = filter_var(env('DEV_AUTOLOGIN_ALLOW_PRODUCTION', false), FILTER_VALIDATE_BOOL);
+
+        $isProduction = app()->environment('production');
+        if ($isProduction && !$allowInProduction) {
             abort(404);
+        }
+
+        if (!$enabled) {
+            abort($isProduction ? 404 : 403, 'DEV_AUTOLOGIN_ENABLED must be set to true.');
+        }
+
+        if (!config('app.debug') && !$allowInProduction) {
+            abort($isProduction ? 404 : 403, 'APP_DEBUG must be set to true.');
         }
 
         $allowedIps = array_values(array_filter(array_map('trim', explode(',', (string) env('DEV_AUTOLOGIN_ALLOWED_IPS', '127.0.0.1,::1')))));
         if ($allowedIps && !in_array(request()->ip(), $allowedIps, true)) {
-            abort(404);
+            abort($isProduction ? 404 : 403, 'IP not allowed for autologin.');
         }
 
         $email = env('DEV_AUTOLOGIN_EMAIL', 'admin@example.com');
@@ -77,6 +88,7 @@ Route::prefix('admin')->middleware(['auth:admin', 'is_admin'])->group(function (
     Route::get('/registrations/export', [AdminController::class, 'exportRegistrations'])->name('admin.registrations.export');
     Route::get('/registrations/{id}', [AdminController::class, 'show'])->name('admin.registrations.show');
     Route::post('/registrations/{id}/checkin', [AdminController::class, 'manualCheckin'])->name('admin.registrations.checkin');
+    Route::post('/registrations/{id}/uncheckin', [AdminController::class, 'manualUncheckin'])->name('admin.registrations.uncheckin');
     Route::delete('/registrations/{id}', [AdminController::class, 'destroy'])->name('admin.registrations.destroy');
     Route::post('/registrations/{id}/resend-webhook', [AdminController::class, 'resendWebhook'])->name('admin.registrations.resend-webhook');
     Route::post('/checkin/{uuid}', [AdminController::class, 'checkin'])->name('admin.checkin');
