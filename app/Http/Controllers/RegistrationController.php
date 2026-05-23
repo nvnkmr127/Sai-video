@@ -7,16 +7,34 @@ use App\Jobs\RegistrationCreated;
 use App\Models\Registration;
 use App\Models\Workshop;
 use App\Models\Setting;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Auth;
 use App\Models\WebhookConfig;
 
 class RegistrationController extends Controller
 {
+    private function normalizePhone(string $phone): string
+    {
+        $normalized = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
+        return preg_replace('/\D+/', '', (string) $normalized);
+    }
+
+    private function otpHash(string $normalizedPhone, string $otp): string
+    {
+        return hash_hmac('sha256', $normalizedPhone . '|' . $otp, (string) config('app.key'));
+    }
+
+    private function isUniqueViolation(QueryException $e, string $constraintName): bool
+    {
+        $message = $e->getMessage();
+        return str_contains($message, $constraintName) || str_contains($message, 'UNIQUE constraint failed');
+    }
+
     private function getSiteSettings(): array
     {
         return [
@@ -32,20 +50,21 @@ class RegistrationController extends Controller
             return false;
         }
 
-        $secrets = array_unique(array_filter([
-            config('app.desk_secret'),
-            env('DESK_SECRET'),
-            'DESK_SECRET',
-            'CHANGE_ME_IN_PRODUCTION'
-        ]));
-
-        foreach ($secrets as $secret) {
-            if (hash_equals($secret, $key)) {
-                return true;
-            }
+        $secret = config('app.desk_secret');
+        if (!$secret) {
+            return false;
         }
 
-        return false;
+        return hash_equals((string) $secret, (string) $key);
+    }
+
+    private function isDeskAuthorized(Request $request, ?string $key = null): bool
+    {
+        if (Auth::guard('admin')->check() && (bool) Auth::guard('admin')->user()?->is_admin) {
+            return true;
+        }
+
+        return $this->isValidDeskKey($key ?? $request->query('key'));
     }
 
     /**
@@ -83,59 +102,58 @@ class RegistrationController extends Controller
                 ->with('error', 'Registration is currently closed for this workshop.');
         }
 
-        // Guard: check seat capacity
-        if ($workshop->max_seats > 0) {
-            $currentCount = Registration::where('workshop_id', $workshop->id)->count();
-            if ($currentCount >= $workshop->max_seats) {
-                return redirect()->route('registration.index')
-                    ->with('error', 'Sorry, this workshop is fully booked. No seats available.');
-            }
-        }
-
         $validated = $request->validated();
         
         // OTP Verification Logic
         $phone = $validated['phone'];
         $submittedOtp = $validated['otp'];
 
-        // Normalize for consistent duplicate check
-        $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
+        $normalizedPhone = $this->normalizePhone($phone);
+        $otp = DB::table('otp_codes')
+            ->where('normalized_phone', $normalizedPhone)
+            ->orderByDesc('id')
+            ->first();
 
-        $cachedOtp = Cache::get('otp_' . $normalizedPhone);
-
-        if (!$cachedOtp || (string)$cachedOtp !== (string)$submittedOtp) {
+        if (!$otp || $otp->expires_at < now() || !hash_equals((string) $otp->otp_hash, $this->otpHash($normalizedPhone, (string) $submittedOtp))) {
             return back()->withInput()->withErrors(['otp' => 'Invalid or expired verification code. Please request a new OTP.']);
         }
-        Cache::forget('otp_' . $normalizedPhone);
 
-        // Check for duplicate phone + workshop combination using normalized phone
-        $alreadyRegistered = Registration::where('workshop_id', $workshop->id)
-            ->where(function($q) use ($normalizedPhone) {
-                $q->where('phone', 'like', "%{$normalizedPhone}")
-                  ->orWhere('phone', $normalizedPhone);
-            })
-            ->exists();
-
-        if ($alreadyRegistered) {
-            return back()->withInput()->withErrors([
-                'phone' => 'This phone number is already registered for this workshop.'
-            ]);
-        }
+        DB::table('otp_codes')->where('normalized_phone', $normalizedPhone)->delete();
 
         $validated['workshop_id'] = $workshop->id;
+        $validated['normalized_phone'] = $normalizedPhone;
 
         // Remove OTP from validated data — not persisted in DB
         unset($validated['otp']);
 
-        // Generate unique 6-character alphanumeric token (e.g. AB12C3)
-        do {
-            $token = strtoupper(Str::random(6));
-        } while (Registration::where('qr_code_token', $token)->exists());
-
-        $validated['qr_code_token'] = $token;
         $validated['status'] = 'pending'; // Default status is pending for waiting list
 
-        $registration = Registration::create($validated);
+        $registration = null;
+        for ($i = 0; $i < 5; $i++) {
+            $validated['qr_code_token'] = strtoupper(Str::random(6));
+            try {
+                $registration = Registration::create($validated);
+                break;
+            } catch (QueryException $e) {
+                if ($this->isUniqueViolation($e, 'registrations_workshop_normalized_phone_unique')) {
+                    return back()->withInput()->withErrors([
+                        'phone' => 'This phone number is already registered for this workshop.',
+                    ]);
+                }
+
+                if ($this->isUniqueViolation($e, 'registrations_qr_code_token_unique')) {
+                    continue;
+                }
+
+                throw $e;
+            }
+        }
+
+        if (!$registration) {
+            return back()->withInput()->withErrors([
+                'phone' => 'Could not complete registration. Please try again.',
+            ]);
+        }
 
         Log::info("New registration (Waiting List): {$registration->full_name} for workshop: {$workshop->title}");
 
@@ -159,14 +177,10 @@ class RegistrationController extends Controller
         ]);
 
         $phone = $request->phone;
-        // Normalize: Strip +91, 91 prefix if it exists to compare only the last 10 digits
-        $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
+        $normalizedPhone = $this->normalizePhone((string) $phone);
 
         $exists = Registration::where('workshop_id', $request->workshop_id)
-            ->where(function($q) use ($normalizedPhone) {
-                $q->where('phone', 'like', "%{$normalizedPhone}")
-                  ->orWhere('phone', $normalizedPhone);
-            })
+            ->where('normalized_phone', $normalizedPhone)
             ->exists();
 
         return response()->json([
@@ -179,40 +193,69 @@ class RegistrationController extends Controller
     {
         $request->validate(['phone' => 'required|string']);
         $phone = $request->phone;
-        
-        // Normalize for consistent rate limiting and storage
-        $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
-        
-        // Rate limit by normalized phone number
-        $otpAttemptKey = 'otp_attempts_' . md5($normalizedPhone);
-        $attempts = Cache::get($otpAttemptKey, 0);
-        if ($attempts >= 3) {
+        $normalizedPhone = $this->normalizePhone((string) $phone);
+        $otp = (string) rand(100000, 999999);
+
+        $allowed = DB::transaction(function () use ($normalizedPhone) {
+            $now = now();
+            $row = DB::table('otp_throttles')
+                ->where('normalized_phone', $normalizedPhone)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$row || $row->reset_at < $now) {
+                DB::table('otp_throttles')->updateOrInsert(
+                    ['normalized_phone' => $normalizedPhone],
+                    ['attempts' => 0, 'reset_at' => $now->copy()->addMinutes(10), 'updated_at' => $now, 'created_at' => $now]
+                );
+                $row = (object) ['attempts' => 0, 'reset_at' => $now->copy()->addMinutes(10)];
+            }
+
+            if ((int) $row->attempts >= 3) {
+                return false;
+            }
+
+            DB::table('otp_throttles')
+                ->where('normalized_phone', $normalizedPhone)
+                ->update(['attempts' => (int) $row->attempts + 1, 'updated_at' => $now]);
+
+            return true;
+        });
+
+        if (!$allowed) {
             return response()->json([
                 'success' => false,
                 'message' => 'Too many OTP requests for this number. Please wait 10 minutes.'
             ], 429);
         }
-        Cache::put($otpAttemptKey, $attempts + 1, now()->addMinutes(10));
 
-        // Generate a 6-digit OTP
-        $otp = rand(100000, 999999);
-        
-        // Store in cache for 10 minutes using normalized phone to prevent formatting bypass issues
-        Cache::put('otp_' . $normalizedPhone, $otp, now()->addMinutes(10));
+        DB::table('otp_codes')->where('normalized_phone', $normalizedPhone)->delete();
+        DB::table('otp_codes')->insert([
+            'normalized_phone' => $normalizedPhone,
+            'otp_hash' => $this->otpHash($normalizedPhone, $otp),
+            'expires_at' => now()->addMinutes(10),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         
         // Find active OTP webhooks
         $webhooks = WebhookConfig::where('type', 'otp')->where('is_active', true)->get();
         
         if ($webhooks->isEmpty()) {
             Log::warning("OTP requested for {$phone} but no active OTP webhooks configured.");
-            
-            // In production, we NEVER return the OTP. 
-            // Only return for local debugging if explicitly allowed, but here we remove it for security.
+
+            if (app()->environment(['local', 'testing'])) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Verification code generated.',
+                    'otp' => (string) $otp,
+                ]);
+            }
+
             return response()->json([
-                'success' => true, 
-                'message' => 'Verification code sent (Dev Mode: Check logs)',
-                // 'otp' => $otp // Removed for security
-            ]);
+                'success' => false,
+                'message' => 'OTP delivery is not configured.',
+            ], 503);
         }
 
         $successCount = 0;
@@ -277,9 +320,9 @@ class RegistrationController extends Controller
      */
     public function validator(Request $request)
     {
-        $key = $request->query('key');
+        $key = $request->query('key', '');
 
-        if (!$this->isValidDeskKey($key)) {
+        if (!$this->isDeskAuthorized($request, $key)) {
             abort(403, 'Unauthorized Access: Invalid Desk Key.');
         }
 
@@ -295,11 +338,12 @@ class RegistrationController extends Controller
     {
         $request->validate([
             'token' => 'required|string',
-            'key'   => 'required|string',
+            'key'   => 'nullable|string',
         ]);
 
-        // Verify Desk Key with timing-attack protection
-        if (!$this->isValidDeskKey($request->key)) {
+        $key = $request->input('key') ?? $request->query('key', '');
+
+        if (!$this->isDeskAuthorized($request, $key)) {
             Log::warning("Unauthorized check-in attempt from IP: {$request->ip()}");
             return response()->json([
                 'success' => false,
@@ -404,11 +448,11 @@ class RegistrationController extends Controller
     public function qrStatus($token)
     {
         $reg = Registration::where('qr_code_token', $token)->firstOrFail();
-        if ($reg->qr_code_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($reg->qr_code_path)) {
+        if ($reg->qr_code_path) {
             return response()->json([
                 'ready' => true, 
                 // Use relative path to avoid APP_URL / Mixed Content issues
-                'url'   => '/storage/' . $reg->qr_code_path
+                'url'   => '/storage/' . ltrim($reg->qr_code_path, '/')
             ]);
         }
         return response()->json(['ready' => false]);
@@ -419,8 +463,8 @@ class RegistrationController extends Controller
      */
     public function validatorStats(Request $request)
     {
-        // Require the desk key
-        if (!$this->isValidDeskKey($request->query('key', ''))) {
+        $key = $request->query('key', '');
+        if (!$this->isDeskAuthorized($request, $key)) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 

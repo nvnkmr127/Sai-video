@@ -69,10 +69,10 @@
             @php $regPct = $ws->max_seats > 0 ? min(100, round($ws->registrations_count / $ws->max_seats * 100)) : 0; @endphp
             @php $checkinPct = $ws->max_seats > 0 ? min(100, round($ws->checked_in_count / $ws->max_seats * 100)) : 0; @endphp
             <div class="progress" style="height: 8px; border-radius: 4px; background: rgba(255,255,255,0.05);">
-                <div class="progress-bar bg-primary bg-opacity-50" style="width: {{ $regPct }}%"></div>
+                <div class="progress-bar bg-primary bg-opacity-50" data-progress-width="{{ $regPct }}"></div>
             </div>
             <div class="progress mt-1" style="height: 4px; border-radius: 4px; background: rgba(255,255,255,0.05);">
-                <div class="progress-bar bg-success" style="width: {{ $checkinPct }}%"></div>
+                <div class="progress-bar bg-success" data-progress-width="{{ $checkinPct }}"></div>
             </div>
             <div class="small text-muted mt-1">{{ $regPct }}% seats filled · {{ $checkinPct }}% checked in</div>
         </div>
@@ -133,7 +133,7 @@
         <div class="content-card p-4 h-100">
             <h5 class="fw-bold mb-4">System Quick Actions</h5>
             <div class="d-grid gap-3">
-                <a href="{{ route('registration.validator', ['key' => env('DESK_SECRET', 'DESK_SECRET')]) }}" class="btn btn-outline-info py-4 d-flex flex-column align-items-center gap-2" style="border-radius: 0.75rem; border-style: dashed;">
+                <a href="{{ route('registration.validator') }}" class="btn btn-outline-info py-4 d-flex flex-column align-items-center gap-2" style="border-radius: 0.75rem; border-style: dashed;">
                     <i class="bi bi-qr-code-scan fs-2"></i>
                     <span class="fw-bold">Scanner Mode</span>
                 </a>

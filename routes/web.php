@@ -11,11 +11,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [RegistrationController::class, 'showForm'])->name('registration.index');
 Route::get('/register/{workshopId?}', [RegistrationController::class, 'showForm'])->name('registration.form');
 Route::post('/register', [RegistrationController::class, 'submit'])
-    ->middleware('throttle:5,1')
     ->name('registration.store');
 
 Route::post('/otp/send', [RegistrationController::class, 'sendOtp'])
-    ->middleware('throttle:3,1')
     ->name('registration.otp.send');
 
 Route::post('/registration/check-duplicate', [RegistrationController::class, 'checkDuplicate'])
@@ -30,10 +28,8 @@ Route::get('/qr-status/{token}', [RegistrationController::class, 'qrStatus'])
 // QR Validation (Public with Secret Key)
 Route::get('/validate', [RegistrationController::class, 'validator'])->name('registration.validator');
 Route::post('/validate/check', [RegistrationController::class, 'validateToken'])
-    ->middleware('throttle:60,1')
     ->name('registration.validator.check');
 Route::get('/validate/stats', [RegistrationController::class, 'validatorStats'])
-    ->middleware('throttle:30,1')
     ->name('registration.validator.stats');
 Route::get('/validate/{uuid}', [RegistrationController::class, 'verify'])->name('registration.verify');
 
@@ -44,29 +40,33 @@ Route::middleware('guest:admin')->group(function () {
         ->middleware('throttle:5,1');
     
     // Dev Autologin
-    if (app()->isLocal()) {
-        Route::get('/admin/autologin', function() {
-            // Try to find an existing admin
-            $user = \App\Models\User::where('is_admin', 1)->first();
-            
-            // If no admin found, create one for convenience
-            if (!$user) {
-                $user = \App\Models\User::create([
-                    'name' => 'Admin User',
-                    'email' => 'admin@example.com',
-                    'password' => bcrypt('password'),
-                    'is_admin' => 1,
-                ]);
-            }
+    Route::get('/admin/autologin', function () {
+        $enabled = filter_var(env('DEV_AUTOLOGIN_ENABLED', false), FILTER_VALIDATE_BOOL);
+        if (!app()->environment('local') || !config('app.debug') || !$enabled) {
+            abort(404);
+        }
 
-            if ($user) {
-                \Illuminate\Support\Facades\Auth::guard('admin')->login($user);
-                return redirect()->route('admin.dashboard');
-            }
-            
-            return 'Could not find or create an admin user.';
-        })->name('admin.autologin');
-    }
+        $allowedIps = array_values(array_filter(array_map('trim', explode(',', (string) env('DEV_AUTOLOGIN_ALLOWED_IPS', '127.0.0.1,::1')))));
+        if ($allowedIps && !in_array(request()->ip(), $allowedIps, true)) {
+            abort(404);
+        }
+
+        $email = env('DEV_AUTOLOGIN_EMAIL', 'admin@example.com');
+        $password = env('DEV_AUTOLOGIN_PASSWORD', 'password');
+
+        $user = \App\Models\User::where('is_admin', 1)->first();
+        if (!$user) {
+            $user = \App\Models\User::create([
+                'name' => 'Admin User',
+                'email' => $email,
+                'password' => bcrypt($password),
+                'is_admin' => 1,
+            ]);
+        }
+
+        \Illuminate\Support\Facades\Auth::guard('admin')->login($user);
+        return redirect()->route('admin.dashboard');
+    })->name('admin.autologin');
 });
 
 // Admin Portal (Protected)

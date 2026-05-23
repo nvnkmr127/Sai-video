@@ -133,6 +133,6 @@ return [
     |
     */
 
-    'desk_secret' => env('DESK_SECRET', 'CHANGE_ME_IN_PRODUCTION'),
+    'desk_secret' => env('DESK_SECRET'),
 
 ];

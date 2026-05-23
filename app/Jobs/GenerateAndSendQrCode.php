@@ -31,7 +31,9 @@ class GenerateAndSendQrCode implements ShouldQueue
      */
     public function __construct(
         public Registration $registration
-    ) {}
+    ) {
+        $this->onQueue('qr');
+    }
 
     /**
      * Execute the job.

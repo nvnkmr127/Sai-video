@@ -21,12 +21,16 @@ class RegistrationFactory extends Factory
      */
     public function definition(): array
     {
+        $digits = fake()->numerify('##########');
+
         return [
             'workshop_id'    => Workshop::factory(),
             'full_name'      => fake()->name(),
-            'phone'          => '+91' . fake()->numerify('##########'),
+            'phone'          => '+91' . $digits,
+            'normalized_phone' => $digits,
             'address'        => fake()->address(),
             'organization'   => fake()->company(),
+            'status'         => 'pending',
             'qr_code_token'  => (string) \Illuminate\Support\Str::uuid(),
             'qr_code_path'   => null,
             'webhook_sent_at' => null,

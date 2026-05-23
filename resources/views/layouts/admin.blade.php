@@ -232,7 +232,7 @@
         <a href="{{ route('admin.webhooks.logs') }}" class="nav-link {{ request()->routeIs('admin.webhooks.logs') ? 'active' : '' }}">
             <i class="bi bi-list-check"></i> Webhook Logs
         </a>
-        <a href="{{ route('registration.validator', ['key' => config('app.desk_secret')]) }}" class="nav-link {{ request()->routeIs('registration.validator') ? 'active' : '' }}">
+        <a href="{{ route('registration.validator') }}" class="nav-link {{ request()->routeIs('registration.validator') ? 'active' : '' }}">
             <i class="bi bi-qr-code-scan"></i> QR Validator
         </a>
         <a href="{{ route('admin.settings.index') }}" class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
@@ -308,6 +308,14 @@
             const sidebar = document.getElementById('sidebar');
             const sidebarToggle = document.getElementById('sidebarToggle');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+            document.querySelectorAll('[data-progress-width]').forEach((el) => {
+                const raw = el.getAttribute('data-progress-width');
+                const width = Number(raw);
+                if (!Number.isNaN(width)) {
+                    el.style.width = `${Math.max(0, Math.min(100, width))}%`;
+                }
+            });
 
             function toggleSidebar() {
                 sidebar.classList.toggle('active');

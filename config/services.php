@@ -39,4 +39,8 @@ return [
         'webhook_url' => env('WORKSHOP_WEBHOOK_URL'),
     ],
 
+    'webhooks' => [
+        'include_qr_base64' => env('WEBHOOK_INCLUDE_QR_BASE64', false),
+    ],
+
 ];

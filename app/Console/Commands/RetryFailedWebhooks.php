@@ -27,7 +27,7 @@ class RetryFailedWebhooks extends Command
     {
         $this->info('Starting retry for failed webhooks...');
 
-        $failedLogs = \App\Models\WebhookLog::whereNotIn('response_status', [200, 201, 202])
+        $failedLogs = \App\Models\WebhookLog::whereNotBetween('response_status', [200, 299])
             ->where('created_at', '>=', now()->subHours(24))
             ->get();
 

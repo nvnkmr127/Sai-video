@@ -39,7 +39,9 @@ class SendWebhookJob implements ShouldQueue
         public Registration $registration,
         public ?int $webhookConfigId = null,
         public string $event = 'registration.created'
-    ) {}
+    ) {
+        $this->onQueue('webhooks');
+    }
 
     /**
      * Execute the job.
@@ -70,9 +72,12 @@ class SendWebhookJob implements ShouldQueue
         $qrCodeBase64 = null;
         $qrCodeUrl = null;
 
-        if ($registration->qr_code_path && Storage::disk('public')->exists($registration->qr_code_path)) {
+        if ($registration->qr_code_path) {
+            $qrCodeUrl = '/storage/' . ltrim($registration->qr_code_path, '/');
+        }
+
+        if (config('services.webhooks.include_qr_base64', false) && $registration->qr_code_path && Storage::disk('public')->exists($registration->qr_code_path)) {
             $qrCodeBase64 = base64_encode(Storage::disk('public')->get($registration->qr_code_path));
-            $qrCodeUrl = Storage::disk('public')->url($registration->qr_code_path);
         }
 
         // 2. Build JSON payload
@@ -110,7 +115,7 @@ class SendWebhookJob implements ShouldQueue
             $alreadySent = WebhookLog::where('registration_id', $registration->id)
                 ->where('webhook_config_id', $config->id)
                 ->where('payload->event', $this->event)
-                ->whereIn('response_status', [200, 201, 202])
+                ->whereBetween('response_status', [200, 299])
                 ->exists();
 
             if ($alreadySent) {

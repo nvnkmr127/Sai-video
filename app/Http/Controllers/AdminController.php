@@ -274,6 +274,17 @@ class AdminController extends Controller
                     return back()->with('info', 'Attendee is already approved.');
                 }
 
+                $workshop = Workshop::find($registration->workshop_id);
+                if ($workshop && $workshop->max_seats > 0) {
+                    $approvedCount = Registration::where('workshop_id', $workshop->id)
+                        ->where('status', 'approved')
+                        ->count();
+
+                    if ($approvedCount >= $workshop->max_seats) {
+                        return back()->with('error', 'Workshop capacity reached. Cannot approve more attendees.');
+                    }
+                }
+
                 $registration->update([
                     'status' => 'approved',
                     'approved_at' => now(),

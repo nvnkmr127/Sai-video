@@ -6,7 +6,7 @@ use App\Models\Registration;
 use App\Models\User;
 use App\Models\Workshop;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -17,6 +17,11 @@ abstract class TestCase extends BaseTestCase
 
     protected function createRegistration(Workshop $workshop, array $overrides = []): Registration
     {
+        if (array_key_exists('phone', $overrides) && !array_key_exists('normalized_phone', $overrides)) {
+            $normalized = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', (string) $overrides['phone']));
+            $overrides['normalized_phone'] = preg_replace('/\D+/', '', (string) $normalized);
+        }
+
         return Registration::factory()->create(array_merge(['workshop_id' => $workshop->id], $overrides));
     }
 
@@ -30,6 +35,15 @@ abstract class TestCase extends BaseTestCase
     protected function setOtp(string $phone, int $otp = 123456): void
     {
         $normalizedPhone = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
-        Cache::put('otp_' . $normalizedPhone, $otp, 600);
+        $normalizedPhone = preg_replace('/\D+/', '', (string) $normalizedPhone);
+
+        DB::table('otp_codes')->where('normalized_phone', $normalizedPhone)->delete();
+        DB::table('otp_codes')->insert([
+            'normalized_phone' => $normalizedPhone,
+            'otp_hash' => hash_hmac('sha256', $normalizedPhone . '|' . (string) $otp, (string) config('app.key')),
+            'expires_at' => now()->addMinutes(10),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }

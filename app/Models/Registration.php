@@ -16,6 +16,7 @@ class Registration extends Model
         'workshop_id',
         'full_name',
         'phone',
+        'normalized_phone',
         'address',
         'organization',
         'qr_code_token',
