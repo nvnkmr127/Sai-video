@@ -277,6 +277,26 @@
                 <div class="stat-value fs-5 d-none d-md-block text-muted">
                     <i class="bi bi-clock me-2"></i> {{ now()->format('M d, H:i') }}
                 </div>
+                <div class="dropdown">
+                    <button class="btn btn-light border-0 d-flex align-items-center gap-2 rounded-4 px-3 py-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="avatar" style="width: 32px; height: 32px; font-size: 0.8rem;">{{ substr(auth('admin')->user()->name ?? 'A', 0, 1) }}</span>
+                        <span class="d-none d-md-inline fw-bold">{{ auth('admin')->user()->name ?? 'Admin' }}</span>
+                        <i class="bi bi-chevron-down small text-muted"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-4 p-2">
+                        <li>
+                            <a class="dropdown-item rounded-3" href="{{ route('admin.settings.index') }}">
+                                <i class="bi bi-person me-2"></i> Profile
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item rounded-3 text-danger" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                <i class="bi bi-box-arrow-left me-2"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </header>
 

@@ -102,7 +102,9 @@
                         @forelse($recentRegistrations as $reg)
                             <tr>
                                 <td>
-                                    <div class="fw-bold text-white">{{ $reg->full_name }}</div>
+                                    <a href="{{ route('admin.registrations.show', $reg->id) }}" class="fw-bold text-decoration-none" style="color: var(--text-main);">
+                                        {{ $reg->full_name }}
+                                    </a>
                                     <div class="small text-muted">{{ $reg->phone }}</div>
                                 </td>
                                 <td>{{ $reg->workshop->title ?? 'N/A' }}</td>

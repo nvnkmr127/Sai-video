@@ -6,11 +6,24 @@ use App\Models\Registration;
 use App\Models\Workshop;
 use App\Jobs\SendWebhookJob;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
+    private function normalizePhone(string $phone): string
+    {
+        $normalized = preg_replace('/^(\+91|91|0)/', '', str_replace(' ', '', $phone));
+        return preg_replace('/\D+/', '', (string) $normalized);
+    }
+
+    private function isUniqueViolation(QueryException $e, string $constraintName): bool
+    {
+        $message = $e->getMessage();
+        return str_contains($message, $constraintName) || str_contains($message, 'UNIQUE constraint failed');
+    }
+
     public function dashboard()
     {
         $stats = [
@@ -151,6 +164,158 @@ class AdminController extends Controller
     {
         $registration = Registration::with(['workshop', 'webhookLogs'])->findOrFail($id);
         return view('admin.registrations.show', compact('registration'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'full_name' => 'required|string|min:2|max:100',
+            'phone' => ['required', 'string', 'regex:/^\+?[0-9\s\-]{7,20}$/'],
+            'organization' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            return DB::transaction(function () use ($id, $validated) {
+                $registration = Registration::lockForUpdate()->findOrFail($id);
+
+                $normalizedPhone = $this->normalizePhone((string) $validated['phone']);
+
+                $registration->update([
+                    'full_name' => $validated['full_name'],
+                    'phone' => $validated['phone'],
+                    'normalized_phone' => $normalizedPhone,
+                    'organization' => $validated['organization'] ?? null,
+                    'address' => $validated['address'] ?? null,
+                ]);
+
+                Log::info("Registration updated by admin: {$registration->full_name} (#{$registration->id}) by: " . (auth('admin')->user()->name ?? 'Admin'));
+
+                return redirect()
+                    ->route('admin.registrations.show', $registration->id)
+                    ->with('success', 'Registration updated.');
+            });
+        } catch (QueryException $e) {
+            if ($this->isUniqueViolation($e, 'registrations_workshop_normalized_phone_unique')) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['phone' => 'This phone number is already registered for this workshop.']);
+            }
+
+            throw $e;
+        }
+    }
+
+    public function liveRegistrations(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required',
+        ]);
+
+        $ids = collect(explode(',', (string) $validated['ids']))
+            ->map(fn ($v) => (int) trim((string) $v))
+            ->filter(fn ($v) => $v > 0)
+            ->values()
+            ->all();
+
+        if (!$ids) {
+            return response()->json([
+                'success' => true,
+                'now' => now()->toIso8601String(),
+                'registrations' => [],
+            ]);
+        }
+
+        $rows = Registration::query()
+            ->whereIn('id', $ids)
+            ->get(['id', 'status', 'checked_in_at', 'checked_in_by', 'webhook_sent_at', 'full_name', 'phone', 'created_at']);
+
+        $registrations = $rows->mapWithKeys(function (Registration $r) {
+            return [
+                (string) $r->id => [
+                    'id' => $r->id,
+                    'status' => $r->status,
+                    'checked_in_at' => $r->checked_in_at?->toIso8601String(),
+                    'checked_in_at_human' => $r->checked_in_at?->format('M d, H:i'),
+                    'checked_in_by' => $r->checked_in_by,
+                    'webhook_sent_at' => $r->webhook_sent_at?->toIso8601String(),
+                    'webhook_sent_at_human' => $r->webhook_sent_at?->format('M d, H:i'),
+                    'full_name' => $r->full_name,
+                    'phone' => $r->phone,
+                    'created_at_human' => $r->created_at?->format('M d, H:i'),
+                ],
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'now' => now()->toIso8601String(),
+            'registrations' => $registrations,
+        ]);
+    }
+
+    public function liveRegistrationsStats(Request $request)
+    {
+        $query = Registration::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('workshop_id')) {
+            $query->where('workshop_id', $request->workshop_id);
+        }
+
+        if ($request->filled('status')) {
+            if ($request->status === 'checked_in') {
+                $query->whereNotNull('checked_in_at');
+            } elseif ($request->status === 'approved') {
+                $query->where('status', 'approved')->whereNull('checked_in_at');
+            } elseif ($request->status === 'waiting') {
+                $query->where('status', 'pending');
+            }
+        }
+
+        $scopedStats = [
+            'total' => (clone $query)->count(),
+            'checked_in' => (clone $query)->whereNotNull('checked_in_at')->count(),
+            'approved' => (clone $query)->where('status', 'approved')->whereNull('checked_in_at')->count(),
+            'waiting' => (clone $query)->where('status', 'pending')->count(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'now' => now()->toIso8601String(),
+            'stats' => $scopedStats,
+        ]);
+    }
+
+    public function liveRegistration($id)
+    {
+        $registration = Registration::findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'now' => now()->toIso8601String(),
+            'registration' => [
+                'id' => $registration->id,
+                'status' => $registration->status,
+                'checked_in_at' => $registration->checked_in_at?->toIso8601String(),
+                'checked_in_at_human' => $registration->checked_in_at?->format('M d, Y H:i:s'),
+                'checked_in_by' => $registration->checked_in_by,
+                'webhook_sent_at' => $registration->webhook_sent_at?->toIso8601String(),
+                'webhook_sent_at_human' => $registration->webhook_sent_at?->format('M d, H:i'),
+                'full_name' => $registration->full_name,
+                'phone' => $registration->phone,
+                'organization' => $registration->organization,
+                'address' => $registration->address,
+                'created_at_human' => $registration->created_at?->format('M d, Y H:i'),
+            ],
+        ]);
     }
 
     /**

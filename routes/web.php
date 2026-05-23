@@ -87,8 +87,12 @@ Route::prefix('admin')->middleware(['auth:admin', 'is_admin'])->group(function (
     Route::post('/registrations/{id}/approve', [AdminController::class, 'approve'])->name('admin.registrations.approve');
     Route::get('/registrations/export', [AdminController::class, 'exportRegistrations'])->name('admin.registrations.export');
     Route::get('/registrations/{id}', [AdminController::class, 'show'])->name('admin.registrations.show');
+    Route::put('/registrations/{id}', [AdminController::class, 'update'])->name('admin.registrations.update');
     Route::post('/registrations/{id}/checkin', [AdminController::class, 'manualCheckin'])->name('admin.registrations.checkin');
     Route::post('/registrations/{id}/uncheckin', [AdminController::class, 'manualUncheckin'])->name('admin.registrations.uncheckin');
+    Route::get('/registrations/live', [AdminController::class, 'liveRegistrations'])->name('admin.registrations.live');
+    Route::get('/registrations/live-stats', [AdminController::class, 'liveRegistrationsStats'])->name('admin.registrations.live-stats');
+    Route::get('/registrations/{id}/live', [AdminController::class, 'liveRegistration'])->name('admin.registrations.live-one');
     Route::delete('/registrations/{id}', [AdminController::class, 'destroy'])->name('admin.registrations.destroy');
     Route::post('/registrations/{id}/resend-webhook', [AdminController::class, 'resendWebhook'])->name('admin.registrations.resend-webhook');
     Route::post('/checkin/{uuid}', [AdminController::class, 'checkin'])->name('admin.checkin');

@@ -12,7 +12,7 @@
             </div>
             <div>
                 <div class="small text-muted">Total Entries</div>
-                <div class="fw-bold">{{ $scopedStats['total'] }}</div>
+                <div class="fw-bold" id="statTotal">{{ $scopedStats['total'] }}</div>
             </div>
         </div>
     </div>
@@ -23,7 +23,7 @@
             </div>
             <div>
                 <div class="small text-muted">Waiting List</div>
-                <div class="fw-bold">{{ $scopedStats['waiting'] }}</div>
+                <div class="fw-bold" id="statWaiting">{{ $scopedStats['waiting'] }}</div>
             </div>
         </div>
     </div>
@@ -34,7 +34,7 @@
             </div>
             <div>
                 <div class="small text-muted">Approved</div>
-                <div class="fw-bold">{{ $scopedStats['approved'] }}</div>
+                <div class="fw-bold" id="statApproved">{{ $scopedStats['approved'] }}</div>
             </div>
         </div>
     </div>
@@ -45,7 +45,7 @@
             </div>
             <div>
                 <div class="small text-muted">Checked In</div>
-                <div class="fw-bold">{{ $scopedStats['checked_in'] }}</div>
+                <div class="fw-bold" id="statCheckedIn">{{ $scopedStats['checked_in'] }}</div>
             </div>
         </div>
     </div>
@@ -98,7 +98,7 @@
     </div>
     <div class="d-block d-md-none p-3">
         @forelse($registrations as $reg)
-            <div class="content-card p-3 mb-3">
+            <div class="content-card p-3 mb-3" data-registration-id="{{ $reg->id }}">
                 <div class="d-flex justify-content-between align-items-start gap-3">
                     <div class="d-flex align-items-center gap-3">
                         <div class="avatar flex-shrink-0" style="width: 36px; height: 36px; font-size: 0.85rem;">{{ substr($reg->full_name, 0, 1) }}</div>
@@ -109,7 +109,7 @@
                             <div class="small text-muted text-break">{{ $reg->phone }}</div>
                         </div>
                     </div>
-                    <div class="flex-shrink-0">
+                    <div class="flex-shrink-0" data-role="status">
                         @if($reg->status === 'approved')
                             @if($reg->checked_in_at)
                                 <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">
@@ -129,7 +129,7 @@
                 </div>
 
                 <div class="mt-3 d-flex justify-content-between align-items-center">
-                    <div class="small text-muted">
+                    <div class="small text-muted" data-role="created-at">
                         <i class="bi bi-clock me-1"></i> {{ $reg->created_at->format('M d, H:i') }}
                     </div>
                     <div class="d-flex align-items-center gap-2">
@@ -141,6 +141,9 @@
                                 </button>
                             </form>
                         @endif
+                        <a href="{{ route('admin.registrations.show', $reg->id) }}?edit=1" class="btn btn-sm btn-outline-secondary" aria-label="Edit">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
                         <a href="{{ route('admin.registrations.show', $reg->id) }}" class="btn btn-sm btn-outline-primary">View</a>
                         <form method="POST"
                               action="{{ route('admin.registrations.destroy', $reg->id) }}"
@@ -173,7 +176,7 @@
             </thead>
             <tbody>
                 @forelse($registrations as $reg)
-                    <tr>
+                    <tr data-registration-id="{{ $reg->id }}">
                         <td class="ps-4">
                             <div class="d-flex align-items-center gap-3">
                                 <div class="avatar" style="width: 32px; height: 32px; font-size: 0.8rem;">{{ substr($reg->full_name, 0, 1) }}</div>
@@ -186,9 +189,9 @@
                         </td>
                         <td class="small text-muted">{{ $reg->phone }}</td>
                         <td>
-                            <div class="small">{{ $reg->created_at->format('M d, H:i') }}</div>
+                            <div class="small" data-role="created-at">{{ $reg->created_at->format('M d, H:i') }}</div>
                         </td>
-                        <td>
+                        <td data-role="status">
                             @if($reg->status === 'approved')
                                 @if($reg->checked_in_at)
                                     <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">
@@ -214,6 +217,9 @@
                                     </button>
                                 </form>
                             @endif
+                            <a href="{{ route('admin.registrations.show', $reg->id) }}?edit=1" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil-square"></i> Edit
+                            </a>
                             <a href="{{ route('admin.registrations.show', $reg->id) }}" 
                                class="btn btn-sm btn-outline-primary">View</a>
                             <form method="POST" 
@@ -243,6 +249,127 @@
         </div>
     @endif
 </div>
+
+<script>
+    (function () {
+        function getVisibleRegistrationIds() {
+            const ids = Array.from(document.querySelectorAll('[data-registration-id]'))
+                .map((el) => Number(el.getAttribute('data-registration-id')))
+                .filter((id) => Number.isFinite(id) && id > 0);
+            return Array.from(new Set(ids));
+        }
+
+        function renderStatusBadge(data) {
+            if (data.status === 'approved') {
+                if (data.checked_in_at) {
+                    return `
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">
+                            <i class="bi bi-check2-all me-1"></i> Checked In
+                        </span>
+                    `;
+                }
+                return `
+                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3">
+                        <i class="bi bi-patch-check me-1"></i> Approved
+                    </span>
+                `;
+            }
+
+            return `
+                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3">
+                    <i class="bi bi-hourglass-split me-1"></i> Waiting List
+                </span>
+            `;
+        }
+
+        function applyUpdates(registrations) {
+            document.querySelectorAll('[data-registration-id]').forEach((row) => {
+                const id = String(row.getAttribute('data-registration-id') || '');
+                const data = registrations?.[id];
+                if (!data) return;
+
+                const statusEl = row.querySelector('[data-role="status"]');
+                if (statusEl) {
+                    const nextKey = `${data.status}:${data.checked_in_at ? '1' : '0'}`;
+                    const currentKey = row.getAttribute('data-live-status-key');
+                    if (currentKey !== nextKey) {
+                        statusEl.innerHTML = renderStatusBadge(data);
+                        row.setAttribute('data-live-status-key', nextKey);
+                    }
+                }
+            });
+        }
+
+        function applyStats(stats) {
+            if (!stats) return;
+            const elTotal = document.getElementById('statTotal');
+            const elWaiting = document.getElementById('statWaiting');
+            const elApproved = document.getElementById('statApproved');
+            const elCheckedIn = document.getElementById('statCheckedIn');
+
+            if (elTotal) elTotal.textContent = String(stats.total ?? '');
+            if (elWaiting) elWaiting.textContent = String(stats.waiting ?? '');
+            if (elApproved) elApproved.textContent = String(stats.approved ?? '');
+            if (elCheckedIn) elCheckedIn.textContent = String(stats.checked_in ?? '');
+        }
+
+        async function pollStats() {
+            const res = await fetch(`{{ route('admin.registrations.live-stats') }}${window.location.search}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!res.ok) return;
+
+            const json = await res.json();
+            if (!json?.success) return;
+
+            applyStats(json.stats);
+        }
+
+        async function poll() {
+            const ids = getVisibleRegistrationIds();
+            if (!ids.length) return;
+
+            const params = new URLSearchParams();
+            params.set('ids', ids.join(','));
+
+            const res = await fetch(`{{ route('admin.registrations.live') }}?${params.toString()}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!res.ok) return;
+
+            const json = await res.json();
+            if (!json?.success) return;
+
+            applyUpdates(json.registrations);
+        }
+
+        let timer = null;
+        function start() {
+            if (timer) return;
+            poll();
+            pollStats();
+            timer = window.setInterval(() => {
+                poll();
+                pollStats();
+            }, 5000);
+        }
+
+        function stop() {
+            if (!timer) return;
+            window.clearInterval(timer);
+            timer = null;
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) stop();
+            else start();
+        });
+
+        start();
+    })();
+</script>
 
 <style>
     .form-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='gray' class='bi bi-chevron-down' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E"); }
