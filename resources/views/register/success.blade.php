@@ -103,9 +103,7 @@
     <div class="success-page" id="successPage" data-qr-poll="{{ ($registration->status === 'approved' && !$registration->qr_code_path) ? '1' : '0' }}" data-qr-status-url="{{ route('registration.qr-status', ['token' => $registration->qr_code_token]) }}">
         <!-- Immersive Background -->
         <div class="dynamic-bg">
-            @if(!empty($siteSettings['success_background']))
-                <div class="bg-layer active" data-bg-url="{{ Storage::url($siteSettings['success_background']) }}"></div>
-            @elseif(!empty($siteSettings['slider_images']))
+            @if(!empty($siteSettings['slider_images']))
                 @foreach($siteSettings['slider_images'] as $index => $image)
                     <div class="bg-layer {{ $index === 0 ? 'active' : '' }}" data-bg-url="/storage/{{ $image }}"></div>
                 @endforeach
@@ -119,7 +117,8 @@
 
         <div class="content-wrapper">
             <div class="glass-card">
-                <div class="pass-shell dark w-full max-w-[420px] flex flex-col items-center justify-center py-8 relative z-10 border-2 border-white/20 rounded-lg p-6 bg-black/40 backdrop-blur-[4px]">
+                <div class="pass-shell dark w-full max-w-[420px] flex flex-col items-center justify-center py-8 relative z-10 border-2 border-white/20 rounded-lg p-6 bg-black/40 backdrop-blur-[4px]"
+                     @if(!empty($siteSettings['success_background'])) style="background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('{{ Storage::url($siteSettings['success_background']) }}'); background-size: cover; background-position: center;" @endif>
                     <div class="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/40 -translate-x-2 -translate-y-2"></div>
                     <div class="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-white/40 translate-x-2 -translate-y-2"></div>
                     <div class="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-white/40 -translate-x-2 translate-y-2"></div>
@@ -147,7 +146,19 @@
                             <p class="font-code-id text-[10px] text-white/40 tracking-[0.4em] mb-2 uppercase">STATUS: WAITING LIST</p>
                         @endif
                         <h1 class="font-display-lg-mobile text-[22px] text-white font-bold tracking-tighter uppercase leading-none">
-                            {{ $registration->workshop->title }}<br><span class="text-primary">Workshop</span>
+                            @php
+                                $title = $registration->workshop->title;
+                                $lowerTitle = strtolower(trim($title));
+                            @endphp
+                            @if(str_contains($lowerTitle, 'workshop'))
+                                @if(str_ends_with($lowerTitle, 'workshop'))
+                                    {!! preg_replace('/(?i)\s*\bworkshop\b$/', '<br><span class="text-primary">Workshop</span>', e($title)) !!}
+                                @else
+                                    {{ $title }}
+                                @endif
+                            @else
+                                {{ $title }}<br><span class="text-primary">Workshop</span>
+                            @endif
                         </h1>
                     </div>
 
@@ -735,6 +746,7 @@
             /* Print Card Styling */
             .pass-shell {
                 background: white !important;
+                background-image: none !important;
                 color: black !important;
                 border: 2px solid #000 !important;
                 box-shadow: none !important;
