@@ -453,7 +453,7 @@
     }
 
     @media (max-width: 576px) {
-        .visual-pane { height: 25vh; min-height: 380px; }
+        .visual-pane { height: 25vh; min-height: 190px; }
         .step-header { margin-bottom: 1.5rem; }
         .step-header h3 { font-size: 1.5rem; }
         .step-header p { font-size: 0.95rem; }
