@@ -55,7 +55,7 @@ class SendWebhookJob implements ShouldQueue
                 $q->where('type', 'registration') // Catch-all
                   ->orWhere('type', $specificType); // Specific event
                 
-                if ($specificType === 'registration_approved') {
+                if ($specificType === 'registration_pending') {
                     $q->orWhere('type', 'workshop_link');
                 }
             });

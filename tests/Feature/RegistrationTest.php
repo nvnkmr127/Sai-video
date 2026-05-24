@@ -880,7 +880,7 @@ class RegistrationTest extends TestCase
         $reg = $this->createRegistration($workshop, [
             'full_name' => 'Jane Smith',
             'phone' => '+919999988888',
-            'status' => 'approved'
+            'status' => 'pending'
         ]);
 
         $config = \App\Models\WebhookConfig::create([
@@ -895,7 +895,7 @@ class RegistrationTest extends TestCase
 
         \Illuminate\Support\Facades\Http::fake();
 
-        $job = new \App\Jobs\SendWebhookJob($reg, $config->id, 'registration.approved');
+        $job = new \App\Jobs\SendWebhookJob($reg, $config->id, 'registration.pending');
         $job->handle();
 
         \Illuminate\Support\Facades\Http::assertSent(function ($request) {
@@ -905,6 +905,7 @@ class RegistrationTest extends TestCase
                 && $data['number'] === '+919999988888'
                 && $data['link'] === 'https://example.com/zoom'
                 && $data['workshop_title'] === 'Zoom Workshop Title'
+                && $data['event'] === 'registration.pending'
                 && str_contains($url, 'name=Jane+Smith')
                 && str_contains($url, 'phone=%2B919999988888')
                 && str_contains($url, 'title=Zoom+Workshop+Title');
@@ -940,6 +941,7 @@ class RegistrationTest extends TestCase
                 && $data['number'] === '+919876543210'
                 && $data['link'] === 'https://example.com/target-zoom'
                 && $data['workshop_title'] === 'Test Zoom Title'
+                && $data['event'] === 'registration.pending'
                 && str_contains($url, 'title=Test+Zoom+Title');
         });
     }
