@@ -125,7 +125,6 @@ class SendWebhookJob implements ShouldQueue
                     'workshop_title' => $config->workshop_title,
                     'event' => 'workshop.link',
                     'timestamp' => now()->toIso8601String(),
-                    'registration_id' => $registration->id,
                 ];
             } else {
                 $currentPayload = $payload;
