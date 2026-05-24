@@ -112,7 +112,12 @@ class AdminController extends Controller
             $query->orderBy($sortColumn, $sortDir);
         }
 
-        $registrations = $query->paginate(25)->withQueryString();
+        $perPage = (int) $request->input('per_page', 25);
+        if (!in_array($perPage, [10, 25, 50, 100])) {
+            $perPage = 25;
+        }
+
+        $registrations = $query->paginate($perPage)->withQueryString();
         $workshops = Workshop::all();
 
         return view('admin.registrations.index', compact('registrations', 'workshops', 'scopedStats'));

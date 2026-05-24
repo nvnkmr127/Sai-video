@@ -54,7 +54,7 @@
 <!-- Filters -->
 <div class="content-card p-4 mb-4">
     <form action="{{ route('admin.registrations.index') }}" method="GET" class="row g-3">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <label class="form-label text-muted small">Search Attendee</label>
             <div class="input-group">
                 <span class="input-group-text bg-transparent border-end-0 border-secondary"><i class="bi bi-search text-muted"></i></span>
@@ -81,7 +81,16 @@
                 <option value="checked_in" {{ request('status') == 'checked_in' ? 'selected' : '' }}>Checked In</option>
             </select>
         </div>
-        <div class="col-md-3 d-flex align-items-end gap-2">
+        <div class="col-md-2">
+            <label class="form-label text-muted small">Show</label>
+            <select name="per_page" class="form-select bg-transparent border-secondary">
+                <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10 per page</option>
+                <option value="25" {{ request('per_page', 25) == 25 ? 'selected' : '' }}>25 per page</option>
+                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50 per page</option>
+                <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100 per page</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end gap-2">
             <button type="submit" class="btn btn-primary flex-grow-1">Apply Filters</button>
             <a href="{{ route('admin.registrations.index') }}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>
         </div>
@@ -93,7 +102,10 @@
     <div class="p-4 d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 border-bottom border-secondary border-opacity-25">
         <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
             <h5 class="fw-bold mb-0">Attendee List</h5>
-            <div class="small text-muted">
+            <div id="paginationRange" class="small text-muted border-start border-secondary border-opacity-25 ps-2">
+                Showing {{ $registrations->firstItem() ?? 0 }}–{{ $registrations->lastItem() ?? 0 }} of {{ $registrations->total() }}
+            </div>
+            <div class="small text-muted border-start border-secondary border-opacity-25 ps-2">
                 <span id="bulkSelectedCount">0</span> selected
             </div>
         </div>
@@ -111,7 +123,7 @@
                 </select>
                 <button id="bulkApplyBtn" type="submit" class="btn btn-sm btn-primary" disabled>Apply</button>
             </form>
-            <a href="{{ route('admin.registrations.export', request()->all()) }}" class="btn btn-sm btn-outline-success">
+            <a id="exportCsvBtn" href="{{ route('admin.registrations.export', request()->all()) }}" class="btn btn-sm btn-outline-success">
                 <i class="bi bi-download me-2"></i> Export to CSV
             </a>
         </div>
@@ -315,11 +327,11 @@
             </tbody>
         </table>
     </div>
-    @if($registrations->hasPages())
-        <div class="p-4 border-top border-secondary border-opacity-25">
+    <div id="paginationContainer" class="p-4 border-top border-secondary border-opacity-25">
+        @if($registrations->hasPages())
             {{ $registrations->links() }}
-        </div>
-    @endif
+        @endif
+    </div>
 </div>
 
 <script>
@@ -515,6 +527,161 @@
             window.clearInterval(timer);
             timer = null;
         }
+
+        // AJAX Search, Filters, Sorting & Pagination
+        const filterForm = document.querySelector('form[action*="registrations"]');
+        const searchInput = document.querySelector('input[name="search"]');
+
+        async function loadRegistrations(url) {
+            const tableContainer = document.querySelector('.table-responsive');
+            const mobileContainer = document.querySelector('.d-block.d-md-none');
+            
+            if (tableContainer) tableContainer.style.opacity = '0.6';
+            if (mobileContainer) mobileContainer.style.opacity = '0.6';
+
+            try {
+                const res = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!res.ok) throw new Error('Network response was not ok');
+
+                const htmlText = await res.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+
+                // Swap Desktop Table rows (tbody)
+                const newTbody = doc.querySelector('.table tbody');
+                const oldTbody = document.querySelector('.table tbody');
+                if (newTbody && oldTbody) {
+                    oldTbody.innerHTML = newTbody.innerHTML;
+                }
+
+                // Swap Mobile layout rows
+                const newMobile = doc.querySelector('.d-block.d-md-none');
+                const oldMobile = document.querySelector('.d-block.d-md-none');
+                if (newMobile && oldMobile) {
+                    oldMobile.innerHTML = newMobile.innerHTML;
+                }
+
+                // Swap Pagination links
+                const newPagination = doc.getElementById('paginationContainer');
+                const oldPagination = document.getElementById('paginationContainer');
+                if (newPagination && oldPagination) {
+                    oldPagination.innerHTML = newPagination.innerHTML;
+                }
+
+                // Swap Range display (Showing X-Y of Z)
+                const newRange = doc.getElementById('paginationRange');
+                const oldRange = document.getElementById('paginationRange');
+                if (newRange && oldRange) {
+                    oldRange.innerHTML = newRange.innerHTML;
+                }
+
+                // Swap stats cards
+                ['statTotal', 'statWaiting', 'statApproved', 'statCheckedIn'].forEach(id => {
+                    const newVal = doc.getElementById(id);
+                    const oldVal = document.getElementById(id);
+                    if (newVal && oldVal) oldVal.textContent = newVal.textContent;
+                });
+
+                // Update Export to CSV button link
+                const exportBtn = document.getElementById('exportCsvBtn');
+                if (exportBtn) {
+                    const urlObj = new URL(url, window.location.origin);
+                    exportBtn.href = `{{ route('admin.registrations.export') }}${urlObj.search}`;
+                }
+
+                // Synchronize input fields values with the loaded URL query parameters (for back/forward history navigation)
+                updateFormInputsFromUrl(url);
+
+            } catch (err) {
+                console.error('AJAX loading failed:', err);
+            } finally {
+                if (tableContainer) tableContainer.style.opacity = '1';
+                if (mobileContainer) mobileContainer.style.opacity = '1';
+                updateBulkUi();
+            }
+        }
+
+        function updateFormInputsFromUrl(url) {
+            if (!filterForm) return;
+            const params = new URLSearchParams(new URL(url, window.location.origin).search);
+            const inputSearch = filterForm.querySelector('input[name="search"]');
+            const selectWorkshop = filterForm.querySelector('select[name="workshop_id"]');
+            const selectStatus = filterForm.querySelector('select[name="status"]');
+            const selectPerPage = filterForm.querySelector('select[name="per_page"]');
+
+            if (inputSearch && inputSearch.value !== (params.get('search') || '')) {
+                inputSearch.value = params.get('search') || '';
+            }
+            if (selectWorkshop && selectWorkshop.value !== (params.get('workshop_id') || '')) {
+                selectWorkshop.value = params.get('workshop_id') || '';
+            }
+            if (selectStatus && selectStatus.value !== (params.get('status') || '')) {
+                selectStatus.value = params.get('status') || '';
+            }
+            if (selectPerPage && selectPerPage.value !== (params.get('per_page') || '25')) {
+                selectPerPage.value = params.get('per_page') || '25';
+            }
+        }
+
+        function triggerSearch() {
+            if (!filterForm) return;
+            const formData = new FormData(filterForm);
+            const params = new URLSearchParams();
+            for (const [key, value] of formData.entries()) {
+                if (value) params.set(key, value);
+            }
+            // Preserve sorting parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('sort_by')) params.set('sort_by', urlParams.get('sort_by'));
+            if (urlParams.has('sort_dir')) params.set('sort_dir', urlParams.get('sort_dir'));
+
+            const url = `${filterForm.action}?${params.toString()}`;
+            window.history.pushState({ path: url }, '', url);
+            loadRegistrations(url);
+        }
+
+        let debounceTimer = null;
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                window.clearTimeout(debounceTimer);
+                debounceTimer = window.setTimeout(() => {
+                    triggerSearch();
+                }, 300);
+            });
+        }
+
+        document.querySelectorAll('select[name="workshop_id"], select[name="status"], select[name="per_page"]').forEach(select => {
+            select.addEventListener('change', () => {
+                triggerSearch();
+            });
+        });
+
+        if (filterForm) {
+            filterForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                triggerSearch();
+            });
+        }
+
+        // Intercept pagination clicks and column header sorting clicks
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('#paginationContainer .page-link, .table thead th a');
+            if (link && link.href) {
+                e.preventDefault();
+                const url = link.href;
+                window.history.pushState({ path: url }, '', url);
+                loadRegistrations(url);
+            }
+        });
+
+        window.addEventListener('popstate', () => {
+            loadRegistrations(window.location.href);
+        });
 
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) stop();
