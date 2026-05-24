@@ -85,7 +85,7 @@
                     CHECKED IN SUCCESSFULLY
                 </div>
                 <div class="text-muted small checkin-time"></div>
-                <button class="btn btn-outline-secondary w-100 mt-4 py-3 rounded-4" onclick="resetScanner()">CLOSE (3s)</button>
+                <button class="btn btn-outline-secondary w-100 mt-4 py-3 rounded-4" onclick="resetScanner()">CLOSE</button>
             </div>
 
             <div id="errorContent" class="result-content error-accent" style="display: none;">
@@ -174,8 +174,26 @@
             }
         }
 
+        const recentScans = {};
+        let resetTimeoutId = null;
+
+        function clearResetTimeout() {
+            if (resetTimeoutId) {
+                clearTimeout(resetTimeoutId);
+                resetTimeoutId = null;
+            }
+        }
+
         function onScanSuccess(decodedText, decodedResult) {
             if (isProcessing) return;
+
+            // Client-side duplicate scan suppression: ignore same token scanned within last 3 seconds
+            const now = Date.now();
+            if (recentScans[decodedText] && (now - recentScans[decodedText] < 3000)) {
+                return;
+            }
+            recentScans[decodedText] = now;
+
             console.log(`Code scanned = ${decodedText}`);
             verifyToken(decodedText);
         }
@@ -206,14 +224,16 @@
             })
             .then(data => {
                 hideAllResults();
+                clearResetTimeout();
                 if (data.success) {
                     showSuccess(data);
                     playFeedback(true);
                     refreshStats();
-                    setTimeout(resetScanner, 4000);
+                    resetTimeoutId = setTimeout(resetScanner, 1500); // Reset after 1.5s
                 } else {
                     showError(data);
                     playFeedback(false);
+                    resetTimeoutId = setTimeout(resetScanner, 2000); // Auto-dismiss error after 2s
                 }
             })
             .catch(err => {
@@ -224,6 +244,7 @@
         }
 
         function resetScanner() {
+            clearResetTimeout();
             isProcessing = false;
             hideAllResults();
             document.getElementById('manualToken').disabled = false;

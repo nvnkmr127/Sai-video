@@ -493,7 +493,7 @@ class RegistrationController extends Controller
                     'checked_in_at'=> $registration->checked_in_at->format('M d, Y H:i'),
                     'time'         => $registration->checked_in_at->format('H:i'),
                 ], 200);
-            });
+            }, 5);
         } catch (\Exception $e) {
             Log::error("QR Validation System Error: " . $e->getMessage());
             return response()->json([
