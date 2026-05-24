@@ -905,7 +905,7 @@ class RegistrationTest extends TestCase
                 && $data['number'] === '+919999988888'
                 && $data['link'] === 'https://example.com/zoom'
                 && $data['workshop_title'] === 'Zoom Workshop Title'
-                && $data['event'] === 'registration.pending'
+                && $data['event'] === 'workshop.link'
                 && str_contains($url, 'name=Jane+Smith')
                 && str_contains($url, 'phone=%2B919999988888')
                 && str_contains($url, 'title=Zoom+Workshop+Title');
@@ -941,7 +941,7 @@ class RegistrationTest extends TestCase
                 && $data['number'] === '+919876543210'
                 && $data['link'] === 'https://example.com/target-zoom'
                 && $data['workshop_title'] === 'Test Zoom Title'
-                && $data['event'] === 'registration.pending'
+                && $data['event'] === 'workshop.link'
                 && str_contains($url, 'title=Test+Zoom+Title');
         });
     }

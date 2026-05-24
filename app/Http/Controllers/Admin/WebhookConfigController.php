@@ -84,9 +84,9 @@ class WebhookConfigController extends Controller
                     'is_test' => true
                 ];
             } elseif ($webhook->type === 'workshop_link') {
-                $event = 'registration.pending';
+                $event = 'workshop.link';
                 $payload = [
-                    'event' => 'registration.pending',
+                    'event' => 'workshop.link',
                     'name' => 'John Doe',
                     'number' => '+919876543210',
                     'link' => $webhook->link,

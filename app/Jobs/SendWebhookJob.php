@@ -115,29 +115,31 @@ class SendWebhookJob implements ShouldQueue
 
         // 3. For each config, send HTTP POST
         foreach ($configs as $config) {
-            // DUPLICATE PREVENTION: Check if this registration was already successfully sent to this config for THIS event
-            $alreadySent = WebhookLog::where('registration_id', $registration->id)
-                ->where('webhook_config_id', $config->id)
-                ->where('payload->event', $this->event)
-                ->whereBetween('response_status', [200, 299])
-                ->exists();
-
-            if ($alreadySent) {
-                continue;
-            }
-
+            $currentEvent = $this->event;
             if ($config->type === 'workshop_link') {
+                $currentEvent = 'workshop.link';
                 $currentPayload = [
                     'name' => $registration->full_name,
                     'number' => $registration->phone,
                     'link' => $config->link,
                     'workshop_title' => $config->workshop_title,
-                    'event' => $this->event,
+                    'event' => 'workshop.link',
                     'timestamp' => now()->toIso8601String(),
                     'registration_id' => $registration->id,
                 ];
             } else {
                 $currentPayload = $payload;
+            }
+
+            // DUPLICATE PREVENTION: Check if this registration was already successfully sent to this config for THIS event
+            $alreadySent = WebhookLog::where('registration_id', $registration->id)
+                ->where('webhook_config_id', $config->id)
+                ->where('payload->event', $currentEvent)
+                ->whereBetween('response_status', [200, 299])
+                ->exists();
+
+            if ($alreadySent) {
+                continue;
             }
 
             $url = $config->url;
@@ -153,7 +155,7 @@ class SendWebhookJob implements ShouldQueue
                 $response = Http::withHeaders([
                     'Content-Type' => 'application/json',
                     'X-Webhook-Secret' => $config->secret_token,
-                    'X-Event' => $this->event,
+                    'X-Event' => $currentEvent,
                 ])->post($url, $currentPayload);
 
                 // 4. Log the result in webhook_logs table
