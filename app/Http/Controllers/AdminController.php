@@ -63,38 +63,56 @@ class AdminController extends Controller
     {
         $query = Registration::with('workshop');
 
-        // Apply Filters
+        // Apply Filters (qualifying columns to avoid ambiguity on joins)
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('full_name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                $q->where('registrations.full_name', 'like', "%{$search}%")
+                  ->orWhere('registrations.phone', 'like', "%{$search}%");
             });
         }
 
         if ($request->filled('workshop_id')) {
-            $query->where('workshop_id', $request->workshop_id);
+            $query->where('registrations.workshop_id', $request->workshop_id);
         }
 
         if ($request->filled('status')) {
             if ($request->status === 'checked_in') {
-                $query->whereNotNull('checked_in_at');
+                $query->whereNotNull('registrations.checked_in_at');
             } elseif ($request->status === 'approved') {
-                $query->where('status', 'approved')->whereNull('checked_in_at');
+                $query->where('registrations.status', 'approved')->whereNull('registrations.checked_in_at');
             } elseif ($request->status === 'waiting') {
-                $query->where('status', 'pending');
+                $query->where('registrations.status', 'pending');
             }
         }
 
-        // Calculate Scoped Stats (After filtering, before pagination)
+        // Calculate Scoped Stats (After filtering, before sorting & pagination)
         $scopedStats = [
             'total'      => (clone $query)->count(),
-            'checked_in' => (clone $query)->whereNotNull('checked_in_at')->count(),
-            'approved'   => (clone $query)->where('status', 'approved')->whereNull('checked_in_at')->count(),
-            'waiting'    => (clone $query)->where('status', 'pending')->count(),
+            'checked_in' => (clone $query)->whereNotNull('registrations.checked_in_at')->count(),
+            'approved'   => (clone $query)->where('registrations.status', 'approved')->whereNull('registrations.checked_in_at')->count(),
+            'waiting'    => (clone $query)->where('registrations.status', 'pending')->count(),
         ];
 
-        $registrations = $query->latest()->paginate(25)->withQueryString();
+        // Apply Sorting
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortDir = $request->input('sort_dir', 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if ($sortBy === 'workshop') {
+            $query->leftJoin('workshops', 'registrations.workshop_id', '=', 'workshops.id')
+                  ->select('registrations.*')
+                  ->orderBy('workshops.title', $sortDir);
+        } else {
+            $allowedSorts = [
+                'full_name' => 'registrations.full_name',
+                'status' => 'registrations.status',
+                'created_at' => 'registrations.created_at',
+            ];
+            $sortColumn = $allowedSorts[$sortBy] ?? 'registrations.created_at';
+            $query->orderBy($sortColumn, $sortDir);
+        }
+
+        $registrations = $query->paginate(25)->withQueryString();
         $workshops = Workshop::all();
 
         return view('admin.registrations.index', compact('registrations', 'workshops', 'scopedStats'));
@@ -108,20 +126,39 @@ class AdminController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('full_name', 'like', "%{$search}%");
+                $q->where('registrations.full_name', 'like', "%{$search}%")
+                  ->orWhere('registrations.phone', 'like', "%{$search}%");
             });
         }
         if ($request->filled('workshop_id')) {
-            $query->where('workshop_id', $request->workshop_id);
+            $query->where('registrations.workshop_id', $request->workshop_id);
         }
         if ($request->filled('status')) {
             if ($request->status === 'checked_in') {
-                $query->whereNotNull('checked_in_at');
+                $query->whereNotNull('registrations.checked_in_at');
             } elseif ($request->status === 'approved') {
-                $query->where('status', 'approved')->whereNull('checked_in_at');
+                $query->where('registrations.status', 'approved')->whereNull('registrations.checked_in_at');
             } elseif ($request->status === 'waiting') {
-                $query->where('status', 'pending');
+                $query->where('registrations.status', 'pending');
             }
+        }
+
+        // Apply same sorting as list
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortDir = $request->input('sort_dir', 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if ($sortBy === 'workshop') {
+            $query->leftJoin('workshops', 'registrations.workshop_id', '=', 'workshops.id')
+                  ->select('registrations.*')
+                  ->orderBy('workshops.title', $sortDir);
+        } else {
+            $allowedSorts = [
+                'full_name' => 'registrations.full_name',
+                'status' => 'registrations.status',
+                'created_at' => 'registrations.created_at',
+            ];
+            $sortColumn = $allowedSorts[$sortBy] ?? 'registrations.created_at';
+            $query->orderBy($sortColumn, $sortDir);
         }
 
         $filename = 'registrations_' . now()->format('Y-m-d_His') . '.csv';
@@ -141,7 +178,7 @@ class AdminController extends Controller
             fputcsv($file, $columns);
 
             // Use cursor() to prevent memory exhaustion for large datasets
-            foreach ($query->latest()->cursor() as $reg) {
+            foreach ($query->cursor() as $reg) {
                 fputcsv($file, [
                     $reg->id,
                     $reg->full_name,

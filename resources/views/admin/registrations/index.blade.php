@@ -58,7 +58,7 @@
             <label class="form-label text-muted small">Search Attendee</label>
             <div class="input-group">
                 <span class="input-group-text bg-transparent border-end-0 border-secondary"><i class="bi bi-search text-muted"></i></span>
-                <input type="text" name="search" class="form-control border-start-0 border-secondary bg-transparent" placeholder="Search by name..." value="{{ request('search') }}">
+                <input type="text" name="search" class="form-control border-start-0 border-secondary bg-transparent" placeholder="Search by name or phone..." value="{{ request('search') }}">
             </div>
         </div>
         <div class="col-md-3">
@@ -127,6 +127,9 @@
                                 {{ $reg->full_name }}
                             </a>
                             <div class="small text-muted text-break">{{ $reg->phone }}</div>
+                            <div class="small text-muted mt-1 text-truncate" style="max-width: 180px;">
+                                <i class="bi bi-calendar-event me-1"></i> {{ $reg->workshop->title ?? 'N/A' }}
+                            </div>
                         </div>
                     </div>
                     <div class="flex-shrink-0 d-flex align-items-start gap-2">
@@ -193,10 +196,47 @@
                     <th class="ps-4" style="width: 40px;">
                         <input id="bulkSelectAll" class="form-check-input" type="checkbox" aria-label="Select all">
                     </th>
-                    <th>Attendee</th>
+                    <th>
+                        <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'full_name', 'sort_dir' => request('sort_by') === 'full_name' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-decoration-none d-inline-flex align-items-center gap-1">
+                            Attendee
+                            @if(request('sort_by') === 'full_name')
+                                <i class="bi bi-chevron-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} text-primary"></i>
+                            @else
+                                <i class="bi bi-chevron-expand text-muted opacity-50"></i>
+                            @endif
+                        </a>
+                    </th>
+                    <th>
+                        <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'workshop', 'sort_dir' => request('sort_by') === 'workshop' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-decoration-none d-inline-flex align-items-center gap-1">
+                            Workshop
+                            @if(request('sort_by') === 'workshop')
+                                <i class="bi bi-chevron-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} text-primary"></i>
+                            @else
+                                <i class="bi bi-chevron-expand text-muted opacity-50"></i>
+                            @endif
+                        </a>
+                    </th>
                     <th>Phone</th>
-                    <th>Registered</th>
-                    <th>Status</th>
+                    <th>
+                        <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'created_at', 'sort_dir' => request('sort_by', 'created_at') === 'created_at' && request('sort_dir', 'desc') === 'asc' ? 'desc' : 'asc']) }}" class="text-decoration-none d-inline-flex align-items-center gap-1">
+                            Registered
+                            @if(request('sort_by', 'created_at') === 'created_at')
+                                <i class="bi bi-chevron-{{ request('sort_dir', 'desc') === 'asc' ? 'up' : 'down' }} text-primary"></i>
+                            @else
+                                <i class="bi bi-chevron-expand text-muted opacity-50"></i>
+                            @endif
+                        </a>
+                    </th>
+                    <th>
+                        <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'status', 'sort_dir' => request('sort_by') === 'status' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-decoration-none d-inline-flex align-items-center gap-1">
+                            Status
+                            @if(request('sort_by') === 'status')
+                                <i class="bi bi-chevron-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} text-primary"></i>
+                            @else
+                                <i class="bi bi-chevron-expand text-muted opacity-50"></i>
+                            @endif
+                        </a>
+                    </th>
                     <th class="text-end pe-4">Actions</th>
                 </tr>
             </thead>
@@ -215,6 +255,10 @@
                                     </a>
                                 </div>
                             </div>
+                        </td>
+                        <td class="small text-muted text-truncate" style="max-width: 200px;">
+                            {{ $reg->workshop->title ?? 'N/A' }}
+                        </td>
                         <td class="small text-muted">{{ $reg->phone }}</td>
                         <td>
                             <div class="small" data-role="created-at">{{ $reg->created_at->format('M d, H:i') }}</div>
@@ -262,7 +306,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="text-center py-5 text-muted">
+                        <td colspan="7" class="text-center py-5 text-muted">
                             <i class="bi bi-search fs-1 d-block mb-3 opacity-25"></i>
                             No registrations found matching your filters.
                         </td>
@@ -488,5 +532,15 @@
     .page-item.active .page-link { background: var(--primary); border-color: var(--primary); color: white; }
     .attendee-link { color: var(--text-main); }
     .attendee-link:hover { color: var(--primary); }
+    .table thead th a {
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 1px;
+        font-weight: 600;
+    }
+    .table thead th a:hover {
+        color: var(--primary);
+    }
 </style>
 @endsection
