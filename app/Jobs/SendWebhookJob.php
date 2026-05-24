@@ -54,6 +54,10 @@ class SendWebhookJob implements ShouldQueue
             ->where(function($q) use ($specificType) {
                 $q->where('type', 'registration') // Catch-all
                   ->orWhere('type', $specificType); // Specific event
+                
+                if ($specificType === 'registration_approved') {
+                    $q->orWhere('type', 'workshop_link');
+                }
             });
 
         if ($this->webhookConfigId) {
@@ -122,18 +126,41 @@ class SendWebhookJob implements ShouldQueue
                 continue;
             }
 
+            if ($config->type === 'workshop_link') {
+                $currentPayload = [
+                    'name' => $registration->full_name,
+                    'number' => $registration->phone,
+                    'link' => $config->link,
+                    'workshop_title' => $config->workshop_title,
+                    'event' => $this->event,
+                    'timestamp' => now()->toIso8601String(),
+                    'registration_id' => $registration->id,
+                ];
+            } else {
+                $currentPayload = $payload;
+            }
+
+            $url = $config->url;
+            if ($config->type === 'workshop_link') {
+                $url = str_replace(
+                    ['{{name}}', '{{number}}', '{{phone}}', '{{link}}', '{{workshop_title}}'],
+                    [urlencode($registration->full_name), urlencode($registration->phone), urlencode($registration->phone), urlencode($config->link ?? ''), urlencode($config->workshop_title ?? '')],
+                    $url
+                );
+            }
+
             try {
                 $response = Http::withHeaders([
                     'Content-Type' => 'application/json',
                     'X-Webhook-Secret' => $config->secret_token,
                     'X-Event' => $this->event,
-                ])->post($config->url, $payload);
+                ])->post($url, $currentPayload);
 
                 // 4. Log the result in webhook_logs table
                 WebhookLog::create([
                     'webhook_config_id' => $config->id,
                     'registration_id' => $registration->id,
-                    'payload' => $payload,
+                    'payload' => $currentPayload,
                     'response_status' => $response->status(),
                     'response_body' => $response->body(),
                     'sent_at' => now(),

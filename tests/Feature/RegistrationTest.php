@@ -840,4 +840,107 @@ class RegistrationTest extends TestCase
             'url' => '/storage/qrcodes/QR_STATUS_READY.svg',
         ]);
     }
+
+    public function test_workshop_link_webhook_config_validation()
+    {
+        $this->loginAdmin();
+
+        // Should fail if type is workshop_link but link or workshop_title are missing
+        $response = $this->post(route('admin.webhooks.store'), [
+            'name' => 'Workshop Link Webhook',
+            'type' => 'workshop_link',
+            'url' => 'https://example.com/webhook',
+            'secret_token' => 'my-secret',
+            'is_active' => 1,
+        ]);
+        $response->assertSessionHasErrors(['link', 'workshop_title']);
+
+        // Should succeed when they are provided
+        $response = $this->post(route('admin.webhooks.store'), [
+            'name' => 'Workshop Link Webhook',
+            'type' => 'workshop_link',
+            'url' => 'https://example.com/webhook',
+            'secret_token' => 'my-secret',
+            'is_active' => 1,
+            'link' => 'https://example.com/class-link',
+            'workshop_title' => 'Custom Class Title',
+        ]);
+        $response->assertRedirect(route('admin.webhooks.index'));
+
+        $this->assertDatabaseHas('webhook_configs', [
+            'type' => 'workshop_link',
+            'link' => 'https://example.com/class-link',
+            'workshop_title' => 'Custom Class Title',
+        ]);
+    }
+
+    public function test_workshop_link_webhook_payload_and_url_substitution()
+    {
+        $workshop = $this->createWorkshop();
+        $reg = $this->createRegistration($workshop, [
+            'full_name' => 'Jane Smith',
+            'phone' => '+919999988888',
+            'status' => 'approved'
+        ]);
+
+        $config = \App\Models\WebhookConfig::create([
+            'name' => 'Workshop Link Webhook',
+            'url' => 'https://example.com/webhook?name={{name}}&phone={{number}}&title={{workshop_title}}',
+            'secret_token' => 'secret',
+            'type' => 'workshop_link',
+            'link' => 'https://example.com/zoom',
+            'workshop_title' => 'Zoom Workshop Title',
+            'is_active' => true,
+        ]);
+
+        \Illuminate\Support\Facades\Http::fake();
+
+        $job = new \App\Jobs\SendWebhookJob($reg, $config->id, 'registration.approved');
+        $job->handle();
+
+        \Illuminate\Support\Facades\Http::assertSent(function ($request) {
+            $data = $request->data();
+            $url = $request->url();
+            return $data['name'] === 'Jane Smith'
+                && $data['number'] === '+919999988888'
+                && $data['link'] === 'https://example.com/zoom'
+                && $data['workshop_title'] === 'Zoom Workshop Title'
+                && str_contains($url, 'name=Jane+Smith')
+                && str_contains($url, 'phone=%2B919999988888')
+                && str_contains($url, 'title=Zoom+Workshop+Title');
+        });
+    }
+
+    public function test_workshop_link_webhook_test_endpoint()
+    {
+        $this->loginAdmin();
+
+        $config = \App\Models\WebhookConfig::create([
+            'name' => 'Test Link Webhook',
+            'url' => 'https://example.com/webhook?title={{workshop_title}}',
+            'secret_token' => 'secret',
+            'type' => 'workshop_link',
+            'link' => 'https://example.com/target-zoom',
+            'workshop_title' => 'Test Zoom Title',
+            'is_active' => true,
+        ]);
+
+        \Illuminate\Support\Facades\Http::fake();
+
+        $response = $this->post(route('admin.webhooks.test', $config));
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true
+        ]);
+
+        \Illuminate\Support\Facades\Http::assertSent(function ($request) {
+            $data = $request->data();
+            $url = $request->url();
+            return $data['name'] === 'John Doe'
+                && $data['number'] === '+919876543210'
+                && $data['link'] === 'https://example.com/target-zoom'
+                && $data['workshop_title'] === 'Test Zoom Title'
+                && str_contains($url, 'title=Test+Zoom+Title');
+        });
+    }
 }

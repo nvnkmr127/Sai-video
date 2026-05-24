@@ -24,10 +24,12 @@ class WebhookConfigController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:registration,registration_pending,registration_approved,registration_checked_in,otp',
+            'type' => 'required|in:registration,registration_pending,registration_approved,registration_checked_in,otp,workshop_link',
             'url' => 'required|url',
             'secret_token' => 'required|string|max:255',
             'is_active' => 'boolean',
+            'link' => 'required_if:type,workshop_link|nullable|url',
+            'workshop_title' => 'required_if:type,workshop_link|nullable|string|max:255',
         ]);
 
         $data['is_active'] = $request->has('is_active');
@@ -46,10 +48,12 @@ class WebhookConfigController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:registration,registration_pending,registration_approved,registration_checked_in,otp',
+            'type' => 'required|in:registration,registration_pending,registration_approved,registration_checked_in,otp,workshop_link',
             'url' => 'required|url',
             'secret_token' => 'required|string|max:255',
             'is_active' => 'boolean',
+            'link' => 'required_if:type,workshop_link|nullable|url',
+            'workshop_title' => 'required_if:type,workshop_link|nullable|string|max:255',
         ]);
 
         $data['is_active'] = $request->has('is_active');
@@ -77,6 +81,15 @@ class WebhookConfigController extends Controller
                     'phone' => '+919876543210',
                     'otp' => '123456',
                     'message' => 'Your verification code is: 123456',
+                    'is_test' => true
+                ];
+            } elseif ($webhook->type === 'workshop_link') {
+                $event = 'registration.approved';
+                $payload = [
+                    'name' => 'John Doe',
+                    'number' => '+919876543210',
+                    'link' => $webhook->link,
+                    'workshop_title' => $webhook->workshop_title,
                     'is_test' => true
                 ];
             } elseif (str_starts_with($webhook->type, 'registration')) {
@@ -113,10 +126,19 @@ class WebhookConfigController extends Controller
                 }
             }
 
+            $url = $webhook->url;
+            if ($webhook->type === 'workshop_link') {
+                $url = str_replace(
+                    ['{{name}}', '{{number}}', '{{phone}}', '{{link}}', '{{workshop_title}}'],
+                    [urlencode('John Doe'), urlencode('+919876543210'), urlencode('+919876543210'), urlencode($webhook->link ?? ''), urlencode($webhook->workshop_title ?? '')],
+                    $url
+                );
+            }
+
             $response = Http::withHeaders([
                 'X-Webhook-Secret' => $webhook->secret_token,
                 'X-Event' => $event
-            ])->post($webhook->url, $payload);
+            ])->post($url, $payload);
 
             // Log the test attempt
             \App\Models\WebhookLog::create([

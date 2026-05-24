@@ -16,6 +16,8 @@ class WebhookConfig extends Model
         'url',
         'secret_token',
         'is_active',
+        'link',
+        'workshop_title',
     ];
 
     protected $casts = [

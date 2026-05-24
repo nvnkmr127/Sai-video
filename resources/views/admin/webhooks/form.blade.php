@@ -34,20 +34,43 @@
                     <option value="registration_approved" {{ old('type', $config->type) == 'registration_approved' ? 'selected' : '' }}>Registration: Only Approved</option>
                     <option value="registration_checked_in" {{ old('type', $config->type) == 'registration_checked_in' ? 'selected' : '' }}>Registration: Only Checked-in</option>
                     <option value="otp" {{ old('type', $config->type) == 'otp' ? 'selected' : '' }}>OTP Webhook (SMS/WhatsApp Provider)</option>
+                    <option value="workshop_link" {{ old('type', $config->type) == 'workshop_link' ? 'selected' : '' }}>Workshop Link (Name, Number, Link, Workshop Title)</option>
                 </select>
                 <div class="form-text mt-2">
                     <div class="d-flex gap-2 align-items-center mb-1">
                         <span class="badge bg-primary-subtle text-primary small">Registration</span>
                         <span class="small text-muted">Sends <code>registration.pending</code>, <code>registration.approved</code>, and <code>registration.checked_in</code>.</span>
                     </div>
-                    <div class="d-flex gap-2 align-items-center">
+                    <div class="d-flex gap-2 align-items-center mb-1">
                         <span class="badge bg-info-subtle text-info small">OTP</span>
                         <span class="small text-muted">Sends <code>test.ping</code> or <code>otp.send</code> for phone verification.</span>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="badge bg-success-subtle text-success small">Workshop Link</span>
+                        <span class="small text-muted">Sends custom Link and Workshop Title with Name & Phone Number.</span>
                     </div>
                 </div>
                 @error('type')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
+            </div>
+
+            <!-- Workshop Link Custom Fields -->
+            <div id="workshop_link_fields" class="mb-3 d-none">
+                <div class="mb-3">
+                    <label for="link" class="form-label fw-bold">Workshop Link</label>
+                    <input type="url" class="form-control @error('link') is-invalid @enderror" id="link" name="link" value="{{ old('link', $config->link) }}" placeholder="https://example.com/workshop-link">
+                    @error('link')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                <div class="mb-3">
+                    <label for="workshop_title" class="form-label fw-bold">Workshop Title</label>
+                    <input type="text" class="form-control @error('workshop_title') is-invalid @enderror" id="workshop_title" name="workshop_title" value="{{ old('workshop_title', $config->workshop_title) }}" placeholder="e.g. Masterclass Title">
+                    @error('workshop_title')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
             </div>
 
             <div class="mb-3">
@@ -110,5 +133,26 @@ document.getElementById('generateTokenBtn').addEventListener('click', function()
     }
     document.getElementById('secret_token').value = token;
 });
+
+// Toggle Workshop Link fields conditionally
+const typeSelect = document.getElementById('type');
+const customFields = document.getElementById('workshop_link_fields');
+const linkInput = document.getElementById('link');
+const titleInput = document.getElementById('workshop_title');
+
+function toggleCustomFields() {
+    if (typeSelect.value === 'workshop_link') {
+        customFields.classList.remove('d-none');
+        linkInput.setAttribute('required', 'required');
+        titleInput.setAttribute('required', 'required');
+    } else {
+        customFields.classList.add('d-none');
+        linkInput.removeAttribute('required');
+        titleInput.removeAttribute('required');
+    }
+}
+
+typeSelect.addEventListener('change', toggleCustomFields);
+toggleCustomFields();
 </script>
 @endsection

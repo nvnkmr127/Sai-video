@@ -35,6 +35,8 @@
                         <td>
                             @if($config->type === 'otp')
                                 <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3">OTP</span>
+                            @elseif($config->type === 'workshop_link')
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">Workshop Link</span>
                             @else
                                 <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3">Registration</span>
                             @endif
