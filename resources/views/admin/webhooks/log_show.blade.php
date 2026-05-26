@@ -12,7 +12,13 @@
             <h2 class="fw-bold mb-1">Webhook Attempt #{{ $log->id }}</h2>
             <p class="text-muted mb-0">Detailed breakdown of the transmission and response.</p>
         </div>
-        <div>
+        <div class="d-flex align-items-center gap-2">
+            <form action="{{ route('admin.webhooks.log-replay', $log) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to replay this webhook log?');">
+                @csrf
+                <button type="submit" class="btn btn-primary px-4 py-2 fs-6">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Replay Webhook
+                </button>
+            </form>
             @if($log->response_status >= 200 && $log->response_status < 300)
                 <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-4 py-2 fs-6">
                     <i class="bi bi-check-circle-fill me-2"></i> Success ({{ $log->response_status }})

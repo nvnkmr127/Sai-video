@@ -19,13 +19,23 @@ class Workshop extends Model
         'location_link',
         'max_seats',
         'is_active',
+        'completed_at',
     ];
 
     protected $casts = [
         'date' => 'date',
         'starts_at' => 'datetime',
         'is_active' => 'boolean',
+        'completed_at' => 'datetime',
     ];
+
+    /**
+     * Check if the workshop is completed.
+     */
+    public function isCompleted(): bool
+    {
+        return $this->completed_at !== null;
+    }
 
     /**
      * Get the registrations for the workshop.

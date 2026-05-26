@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Workshop;
+use App\Jobs\SendWebhookJob;
 use Illuminate\Http\Request;
 
 class WorkshopController extends Controller
@@ -72,5 +73,34 @@ class WorkshopController extends Controller
 
         $workshop->delete();
         return redirect()->route('admin.workshops.index')->with('success', 'Workshop deleted successfully.');
+    }
+
+    public function complete(Workshop $workshop)
+    {
+        if ($workshop->isCompleted()) {
+            return redirect()->route('admin.workshops.index')->with('error', 'This workshop has already been completed.');
+        }
+
+        $workshop->update([
+            'completed_at' => now(),
+            'is_active' => false,
+        ]);
+
+        $checkedInAttendees = $workshop->registrations()
+            ->where('status', 'approved')
+            ->whereNotNull('checked_in_at')
+            ->get();
+
+        $count = 0;
+        foreach ($checkedInAttendees as $registration) {
+            if (app()->isLocal()) {
+                SendWebhookJob::dispatchSync($registration, null, 'certificate.sent');
+            } else {
+                SendWebhookJob::dispatch($registration, null, 'certificate.sent');
+            }
+            $count++;
+        }
+
+        return redirect()->route('admin.workshops.index')->with('success', "Workshop '{$workshop->title}' marked as completed. Certificate webhooks have been dispatched for {$count} checked-in attendee(s).");
     }
 }

@@ -945,4 +945,162 @@ class RegistrationTest extends TestCase
                 && str_contains($url, 'title=Test+Zoom+Title');
         });
     }
+
+    public function test_certificate_route_restricted_to_checked_in()
+    {
+        $workshop = $this->createWorkshop();
+        
+        // 1. Unchecked-in user fails with 403
+        $regUnchecked = $this->createRegistration($workshop, [
+            'full_name' => 'Unchecked Attendee',
+            'status' => 'approved',
+            'checked_in_at' => null
+        ]);
+        $response = $this->get(route('registration.certificate', $regUnchecked->qr_code_token));
+        $response->assertStatus(403);
+
+        // 2. Checked-in user succeeds with 200
+        $regChecked = $this->createRegistration($workshop, [
+            'full_name' => 'Checked In Attendee',
+            'status' => 'approved',
+            'checked_in_at' => now(),
+            'checked_in_by' => 'Scanner'
+        ]);
+        $response = $this->get(route('registration.certificate', $regChecked->qr_code_token));
+        $response->assertStatus(200);
+        $response->assertSee('Checked In Attendee');
+        $response->assertSee($workshop->title);
+    }
+
+    public function test_workshop_completion_marks_completed_and_triggers_webhooks()
+    {
+        $workshop = $this->createWorkshop();
+        
+        // One checked in, one not checked in
+        $reg1 = $this->createRegistration($workshop, [
+            'full_name' => 'Checked In One',
+            'status' => 'approved',
+            'checked_in_at' => now()
+        ]);
+        $reg2 = $this->createRegistration($workshop, [
+            'full_name' => 'Not Checked In Two',
+            'status' => 'approved',
+            'checked_in_at' => null
+        ]);
+
+        // Create a certificate webhook config
+        $config = \App\Models\WebhookConfig::create([
+            'name' => 'Cert Webhook',
+            'url' => 'https://example.com/cert-hook',
+            'secret_token' => 'secret',
+            'type' => 'certificate',
+            'is_active' => true,
+        ]);
+
+        \Illuminate\Support\Facades\Queue::fake();
+
+        $this->loginAdmin();
+
+        $response = $this->post(route('admin.workshops.complete', $workshop));
+        $response->assertRedirect();
+        
+        $this->assertNotNull($workshop->fresh()->completed_at);
+        $this->assertFalse($workshop->fresh()->is_active);
+
+        // Webhook should be dispatched for checked-in attendee ($reg1) but not unchecked ($reg2)
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SendWebhookJob::class, function ($job) use ($reg1) {
+            return $job->registration->id === $reg1->id && $job->event === 'certificate.sent';
+        });
+        
+        \Illuminate\Support\Facades\Queue::assertNotPushed(\App\Jobs\SendWebhookJob::class, function ($job) use ($reg2) {
+            return $job->registration->id === $reg2->id;
+        });
+    }
+
+    public function test_certificate_webhook_payload_and_url_substitution()
+    {
+        $workshop = $this->createWorkshop(['title' => 'Advanced Photography']);
+        $reg = $this->createRegistration($workshop, [
+            'full_name' => 'Alice Adams',
+            'phone' => '+919999900000',
+            'status' => 'approved',
+            'checked_in_at' => now()
+        ]);
+
+        $config = \App\Models\WebhookConfig::create([
+            'name' => 'Certificate Delivery Webhook',
+            'url' => 'https://example.com/send-cert?name={{name}}&phone={{phone}}&url={{certificate_url}}&w={{workshop_title}}',
+            'secret_token' => 'secret',
+            'type' => 'certificate',
+            'is_active' => true,
+        ]);
+
+        \Illuminate\Support\Facades\Http::fake();
+
+        $job = new \App\Jobs\SendWebhookJob($reg, $config->id, 'certificate.sent');
+        $job->handle();
+
+        \Illuminate\Support\Facades\Http::assertSent(function ($request) use ($reg) {
+            $data = $request->data();
+            $url = $request->url();
+            $expectedCertUrl = route('registration.certificate', ['token' => $reg->qr_code_token]);
+            
+            return $data['name'] === 'Alice Adams'
+                && $data['number'] === '+919999900000'
+                && $data['certificate_url'] === $expectedCertUrl
+                && $data['workshop_title'] === 'Advanced Photography'
+                && $data['event'] === 'certificate.sent'
+                && str_contains($url, 'name=Alice+Adams')
+                && str_contains($url, 'phone=%2B919999900000')
+                && str_contains($url, 'url=' . urlencode($expectedCertUrl))
+                && str_contains($url, 'w=Advanced+Photography');
+        });
+    }
+
+    public function test_webhook_replay_endpoint()
+    {
+        $workshop = $this->createWorkshop();
+        $reg = $this->createRegistration($workshop, [
+            'status' => 'approved'
+        ]);
+
+        $config = \App\Models\WebhookConfig::create([
+            'name' => 'Test Webhook Replay',
+            'url' => 'https://example.com/webhook',
+            'secret_token' => 'secret',
+            'type' => 'registration_approved',
+            'is_active' => true,
+        ]);
+
+        // Create an existing log (which could be successful or failed)
+        $log = \App\Models\WebhookLog::create([
+            'webhook_config_id' => $config->id,
+            'registration_id' => $reg->id,
+            'payload' => ['event' => 'registration.approved'],
+            'response_status' => 200, // even if it is 200, we force replay it
+            'response_body' => 'OK',
+            'sent_at' => now(),
+        ]);
+
+        \Illuminate\Support\Facades\Http::fake([
+            'https://example.com/webhook' => \Illuminate\Support\Facades\Http::response('REPLAY_OK', 201)
+        ]);
+
+        $this->loginAdmin();
+
+        $response = $this->post(route('admin.webhooks.log-replay', $log));
+
+        // It should redirect to the new log's detail page
+        $newLog = \App\Models\WebhookLog::where('registration_id', $reg->id)
+            ->where('webhook_config_id', $config->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotEquals($log->id, $newLog->id);
+        $this->assertEquals(201, $newLog->response_status);
+        $this->assertEquals('REPLAY_OK', $newLog->response_body);
+
+        $response->assertRedirect(route('admin.webhooks.log-show', $newLog));
+        $response->assertSessionHas('success');
+    }
 }

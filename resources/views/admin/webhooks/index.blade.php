@@ -37,6 +37,8 @@
                                 <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3">OTP</span>
                             @elseif($config->type === 'workshop_link')
                                 <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">Workshop Link</span>
+                            @elseif($config->type === 'certificate')
+                                <span class="badge bg-purple bg-opacity-10 text-purple border border-purple border-opacity-25 px-3" style="background-color: rgba(111, 66, 193, 0.1) !important; color: #6f42c1 !important; border-color: rgba(111, 66, 193, 0.25) !important;">Certificate</span>
                             @else
                                 <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3">Registration</span>
                             @endif

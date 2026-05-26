@@ -562,4 +562,22 @@ class RegistrationController extends Controller
             'total'      => $workshop->max_seats,
         ]);
     }
+
+    /**
+     * View the certificate for checked-in attendees.
+     */
+    public function viewCertificate($token)
+    {
+        $registration = Registration::with('workshop')
+            ->where('qr_code_token', $token)
+            ->firstOrFail();
+
+        if (!$registration->checked_in_at) {
+            abort(403, 'Certificates are only issued to checked-in attendees.');
+        }
+
+        $siteSettings = $this->getSiteSettings();
+
+        return view('register.certificate', compact('registration', 'siteSettings'));
+    }
 }

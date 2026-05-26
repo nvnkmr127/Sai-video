@@ -38,7 +38,8 @@ class SendWebhookJob implements ShouldQueue
     public function __construct(
         public Registration $registration,
         public ?int $webhookConfigId = null,
-        public string $event = 'registration.created'
+        public string $event = 'registration.created',
+        public bool $force = false
     ) {
         $this->onQueue('webhooks');
     }
@@ -52,11 +53,15 @@ class SendWebhookJob implements ShouldQueue
         $specificType = str_replace('.', '_', $this->event); // e.g. registration_pending
         $query = WebhookConfig::where('is_active', true)
             ->where(function($q) use ($specificType) {
-                $q->where('type', 'registration') // Catch-all
-                  ->orWhere('type', $specificType); // Specific event
-                
-                if ($specificType === 'registration_pending') {
-                    $q->orWhere('type', 'workshop_link');
+                if ($specificType === 'certificate_sent') {
+                    $q->where('type', 'certificate');
+                } else {
+                    $q->where('type', 'registration') // Catch-all
+                      ->orWhere('type', $specificType); // Specific event
+                    
+                    if ($specificType === 'registration_pending') {
+                        $q->orWhere('type', 'workshop_link');
+                    }
                 }
             });
 
@@ -84,6 +89,8 @@ class SendWebhookJob implements ShouldQueue
             $qrCodeBase64 = base64_encode(Storage::disk('public')->get($registration->qr_code_path));
         }
 
+        $certificateUrl = route('registration.certificate', ['token' => $registration->qr_code_token]);
+
         // 2. Build JSON payload
         $payload = [
             'event' => $this->event,
@@ -101,6 +108,7 @@ class SendWebhookJob implements ShouldQueue
             'qr_code_token' => $registration->qr_code_token,
             'qr_code_image_base64' => $qrCodeBase64,
             'qr_code_image_url' => $qrCodeUrl,
+            'certificate_url' => $certificateUrl,
         ];
 
         if ($this->event === 'registration.approved') {
@@ -126,16 +134,30 @@ class SendWebhookJob implements ShouldQueue
                     'event' => 'workshop.link',
                     'timestamp' => now()->toIso8601String(),
                 ];
+            } elseif ($config->type === 'certificate') {
+                $currentEvent = 'certificate.sent';
+                $currentPayload = [
+                    'event' => 'certificate.sent',
+                    'name' => $registration->full_name,
+                    'number' => $registration->phone,
+                    'phone' => $registration->phone,
+                    'certificate_url' => $certificateUrl,
+                    'workshop_title' => $registration->workshop->title ?? 'N/A',
+                    'timestamp' => now()->toIso8601String(),
+                ];
             } else {
                 $currentPayload = $payload;
             }
 
             // DUPLICATE PREVENTION: Check if this registration was already successfully sent to this config for THIS event
-            $alreadySent = WebhookLog::where('registration_id', $registration->id)
-                ->where('webhook_config_id', $config->id)
-                ->where('payload->event', $currentEvent)
-                ->whereBetween('response_status', [200, 299])
-                ->exists();
+            $alreadySent = false;
+            if (!$this->force) {
+                $alreadySent = WebhookLog::where('registration_id', $registration->id)
+                    ->where('webhook_config_id', $config->id)
+                    ->where('payload->event', $currentEvent)
+                    ->whereBetween('response_status', [200, 299])
+                    ->exists();
+            }
 
             if ($alreadySent) {
                 continue;
@@ -146,6 +168,12 @@ class SendWebhookJob implements ShouldQueue
                 $url = str_replace(
                     ['{{name}}', '{{number}}', '{{phone}}', '{{link}}', '{{workshop_title}}'],
                     [urlencode($registration->full_name), urlencode($registration->phone), urlencode($registration->phone), urlencode($config->link ?? ''), urlencode($config->workshop_title ?? '')],
+                    $url
+                );
+            } elseif ($config->type === 'certificate') {
+                $url = str_replace(
+                    ['{{name}}', '{{number}}', '{{phone}}', '{{certificate_url}}', '{{workshop_title}}'],
+                    [urlencode($registration->full_name), urlencode($registration->phone), urlencode($registration->phone), urlencode($certificateUrl), urlencode($registration->workshop->title ?? '')],
                     $url
                 );
             }

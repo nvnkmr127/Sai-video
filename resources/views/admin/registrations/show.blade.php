@@ -102,7 +102,10 @@
                                 <div class="small text-muted">Checked in on {{ $registration->checked_in_at->format('M d, Y H:i:s') }}</div>
                                 <div class="small text-muted">Verified by: {{ $registration->checked_in_by }}</div>
                                 <div class="mt-3 d-flex flex-column flex-sm-row gap-2">
-                                    <button id="manualUncheckInBtn" class="btn btn-outline-danger px-4 align-self-start">
+                                    <a href="{{ route('registration.certificate', $registration->qr_code_token) }}" target="_blank" class="btn btn-sm btn-success px-4 align-self-start d-inline-flex align-items-center gap-2">
+                                        <i class="bi bi-award"></i> View Certificate
+                                    </a>
+                                    <button id="manualUncheckInBtn" class="btn btn-sm btn-outline-danger px-4 align-self-start">
                                         <i class="bi bi-arrow-counterclockwise me-2"></i> Undo Check-In
                                     </button>
                                 </div>
@@ -183,10 +186,16 @@
             <code class="d-block bg-dark bg-opacity-50 p-2 rounded-3 border border-secondary border-opacity-25 small mb-4 text-break">{{ $registration->qr_code_token }}</code>
 
             @php($passUrl = route('registration.success', $registration->qr_code_token))
+            @php($certUrl = route('registration.certificate', $registration->qr_code_token))
             <div class="d-grid gap-2 mb-4">
                 <a href="{{ $passUrl }}" target="_blank" rel="noopener" class="btn btn-sm btn-primary">
                     <i class="bi bi-box-arrow-up-right me-2"></i> View Pass
                 </a>
+                @if($registration->checked_in_at)
+                    <a href="{{ $certUrl }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-award me-2"></i> View Certificate
+                    </a>
+                @endif
                 <div class="input-group input-group-sm">
                     <input type="text" class="form-control" value="{{ $passUrl }}" readonly onclick="this.select()">
                     <button class="btn btn-outline-secondary" type="button" id="copyPassLinkBtn">Copy</button>
@@ -311,7 +320,10 @@ function bindManualCheckIn() {
                     <div class="small text-muted">Checked in on ${data.checked_in_at}</div>
                     <div class="small text-muted">Verified by: ${data.checked_in_by}</div>
                     <div class="mt-3 d-flex flex-column flex-sm-row gap-2">
-                        <button id="manualUncheckInBtn" class="btn btn-outline-danger px-4 align-self-start">
+                        <a href="{{ route('registration.certificate', $registration->qr_code_token) }}" target="_blank" class="btn btn-sm btn-success px-4 align-self-start d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-award"></i> View Certificate
+                        </a>
+                        <button id="manualUncheckInBtn" class="btn btn-sm btn-outline-danger px-4 align-self-start">
                             <i class="bi bi-arrow-counterclockwise me-2"></i> Undo Check-In
                         </button>
                     </div>
@@ -427,7 +439,10 @@ if (new URLSearchParams(window.location.search).get('edit') === '1') {
                     <div class="small text-muted">Checked in on ${reg.checked_in_at_human ?? ''}</div>
                     <div class="small text-muted">Verified by: ${reg.checked_in_by ?? ''}</div>
                     <div class="mt-3 d-flex flex-column flex-sm-row gap-2">
-                        <button id="manualUncheckInBtn" class="btn btn-outline-danger px-4 align-self-start">
+                        <a href="{{ route('registration.certificate', $registration->qr_code_token) }}" target="_blank" class="btn btn-sm btn-success px-4 align-self-start d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-award"></i> View Certificate
+                        </a>
+                        <button id="manualUncheckInBtn" class="btn btn-sm btn-outline-danger px-4 align-self-start">
                             <i class="bi bi-arrow-counterclockwise me-2"></i> Undo Check-In
                         </button>
                     </div>

@@ -28,6 +28,8 @@ Route::get('/success/{uuid}', [RegistrationController::class, 'success'])->name(
 Route::get('/qr-status/{token}', [RegistrationController::class, 'qrStatus'])
     ->middleware('throttle:30,1')
     ->name('registration.qr-status');
+Route::get('/certificate/{token}', [RegistrationController::class, 'viewCertificate'])
+    ->name('registration.certificate');
 
 // QR Validation (Public with Secret Key)
 Route::get('/validate', [RegistrationController::class, 'validator'])->name('registration.validator');
@@ -106,6 +108,8 @@ Route::prefix('admin')->middleware(['auth:admin', 'is_admin'])->group(function (
     Route::post('/checkin/{uuid}', [AdminController::class, 'checkin'])->name('admin.checkin');
 
     // Workshops CRUD
+    Route::post('workshops/{workshop}/complete', [WorkshopController::class, 'complete'])
+        ->name('admin.workshops.complete');
     Route::resource('workshops', WorkshopController::class)->names('admin.workshops');
 
     // Webhook Configs CRUD
@@ -117,6 +121,7 @@ Route::prefix('admin')->middleware(['auth:admin', 'is_admin'])->group(function (
     // Webhook Logs
     Route::get('webhook-logs', [App\Http\Controllers\Admin\WebhookLogController::class, 'index'])->name('admin.webhooks.logs');
     Route::get('webhook-logs/{log}', [App\Http\Controllers\Admin\WebhookLogController::class, 'show'])->name('admin.webhooks.log-show');
+    Route::post('webhook-logs/{log}/replay', [App\Http\Controllers\Admin\WebhookLogController::class, 'replay'])->name('admin.webhooks.log-replay');
 
     // Settings
     Route::get('settings', [SettingsController::class, 'index'])->name('admin.settings.index');

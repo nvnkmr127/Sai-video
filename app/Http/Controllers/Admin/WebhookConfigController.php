@@ -24,7 +24,7 @@ class WebhookConfigController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:registration,registration_pending,registration_approved,registration_checked_in,otp,workshop_link',
+            'type' => 'required|in:registration,registration_pending,registration_approved,registration_checked_in,otp,workshop_link,certificate',
             'url' => 'required|url',
             'secret_token' => 'required|string|max:255',
             'is_active' => 'boolean',
@@ -48,7 +48,7 @@ class WebhookConfigController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:registration,registration_pending,registration_approved,registration_checked_in,otp,workshop_link',
+            'type' => 'required|in:registration,registration_pending,registration_approved,registration_checked_in,otp,workshop_link,certificate',
             'url' => 'required|url',
             'secret_token' => 'required|string|max:255',
             'is_active' => 'boolean',
@@ -81,6 +81,17 @@ class WebhookConfigController extends Controller
                     'phone' => '+919876543210',
                     'otp' => '123456',
                     'message' => 'Your verification code is: 123456',
+                    'is_test' => true
+                ];
+            } elseif ($webhook->type === 'certificate') {
+                $event = 'certificate.sent';
+                $payload = [
+                    'event' => 'certificate.sent',
+                    'name' => 'John Doe',
+                    'number' => '+919876543210',
+                    'phone' => '+919876543210',
+                    'certificate_url' => 'https://example.com/certificate/sample-uuid',
+                    'workshop_title' => 'Sample Workshop (Test)',
                     'is_test' => true
                 ];
             } elseif ($webhook->type === 'workshop_link') {
@@ -132,6 +143,12 @@ class WebhookConfigController extends Controller
                 $url = str_replace(
                     ['{{name}}', '{{number}}', '{{phone}}', '{{link}}', '{{workshop_title}}'],
                     [urlencode('John Doe'), urlencode('+919876543210'), urlencode('+919876543210'), urlencode($webhook->link ?? ''), urlencode($webhook->workshop_title ?? '')],
+                    $url
+                );
+            } elseif ($webhook->type === 'certificate') {
+                $url = str_replace(
+                    ['{{name}}', '{{number}}', '{{phone}}', '{{certificate_url}}', '{{workshop_title}}'],
+                    [urlencode('John Doe'), urlencode('+919876543210'), urlencode('+919876543210'), urlencode('https://example.com/certificate/sample-uuid'), urlencode('Sample Workshop (Test)')],
                     $url
                 );
             }

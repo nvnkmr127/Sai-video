@@ -35,6 +35,7 @@
                     <option value="registration_checked_in" {{ old('type', $config->type) == 'registration_checked_in' ? 'selected' : '' }}>Registration: Only Checked-in</option>
                     <option value="otp" {{ old('type', $config->type) == 'otp' ? 'selected' : '' }}>OTP Webhook (SMS/WhatsApp Provider)</option>
                     <option value="workshop_link" {{ old('type', $config->type) == 'workshop_link' ? 'selected' : '' }}>Workshop Link (Name, Number, Link, Workshop Title)</option>
+                    <option value="certificate" {{ old('type', $config->type) == 'certificate' ? 'selected' : '' }}>Certificate: On Workshop Completion (Name, Number, Certificate URL, Workshop Title)</option>
                 </select>
                 <div class="form-text mt-2">
                     <div class="d-flex gap-2 align-items-center mb-1">
@@ -45,9 +46,13 @@
                         <span class="badge bg-info-subtle text-info small">OTP</span>
                         <span class="small text-muted">Sends <code>test.ping</code> or <code>otp.send</code> for phone verification.</span>
                     </div>
-                    <div class="d-flex gap-2 align-items-center">
+                    <div class="d-flex gap-2 align-items-center mb-1">
                         <span class="badge bg-success-subtle text-success small">Workshop Link</span>
                         <span class="small text-muted">Sends custom Link and Workshop Title with Name & Phone Number.</span>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="badge bg-purple-subtle text-purple small" style="background-color: rgba(111, 66, 193, 0.1) !important; color: #6f42c1 !important;">Certificate</span>
+                        <span class="small text-muted">Sends certificate page URL, Workshop Title, Name & Phone Number when workshop completes.</span>
                     </div>
                 </div>
                 @error('type')
